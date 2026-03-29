@@ -3,7 +3,6 @@
 
 import os
 import json
-import sqlite3
 import re
 import threading
 from datetime import datetime
@@ -14,29 +13,127 @@ from flask import Flask, request, jsonify, send_from_directory, session, redirec
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.environ.get('SECRET_KEY', 'nourishny-dev-key-change-in-prod')
 
-DB_PATH = os.environ.get('DB_PATH', 'nourishny.db')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 
-# Email config — set these environment variables in production
+# Email config
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
 ADMIN_NOTIFY_EMAIL = os.environ.get('ADMIN_NOTIFY_EMAIL', '')
 SITE_URL = os.environ.get('SITE_URL', 'http://localhost:5001')
+
+# Database — use Postgres if DATABASE_URL is set, otherwise SQLite for local dev
+DATABASE_URL = os.environ.get('DATABASE_URL', '')
+USE_POSTGRES = bool(DATABASE_URL)
+
+if USE_POSTGRES:
+    import psycopg2
+    import psycopg2.extras
 
 
 # ── Database helpers ─────────────────────────────────────────────────────────
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute('PRAGMA journal_mode=WAL')
-    return conn
+    if USE_POSTGRES:
+        conn = psycopg2.connect(DATABASE_URL)
+        return conn
+    else:
+        import sqlite3
+        conn = sqlite3.connect(os.environ.get('DB_PATH', 'nourishny.db'))
+        conn.row_factory = sqlite3.Row
+        conn.execute('PRAGMA journal_mode=WAL')
+        return conn
+
+
+def db_execute(conn, query, params=None):
+    """Execute a query, converting ? placeholders to %s for Postgres."""
+    if USE_POSTGRES:
+        query = query.replace('?', '%s')
+        query = query.replace('AUTOINCREMENT', '')
+        query = query.replace('INTEGER PRIMARY KEY ', 'SERIAL PRIMARY KEY ')
+    cur = conn.cursor()
+    cur.execute(query, params or [])
+    return cur
+
+
+def db_fetchall(conn, query, params=None):
+    """Fetch all rows as list of dicts."""
+    if USE_POSTGRES:
+        query = query.replace('?', '%s')
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(query, params or [])
+        return cur.fetchall()
+    else:
+        cur = conn.execute(query, params or [])
+        return [dict(r) for r in cur.fetchall()]
+
+
+def db_fetchone(conn, query, params=None):
+    """Fetch one row as dict."""
+    if USE_POSTGRES:
+        query = query.replace('?', '%s')
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(query, params or [])
+        row = cur.fetchone()
+        return row
+    else:
+        cur = conn.execute(query, params or [])
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+
+def db_fetchval(conn, query, params=None):
+    """Fetch a single value."""
+    if USE_POSTGRES:
+        query = query.replace('?', '%s')
+        cur = conn.cursor()
+        cur.execute(query, params or [])
+        return cur.fetchone()[0]
+    else:
+        return conn.execute(query, params or []).fetchone()[0]
 
 
 def init_db():
-    """Create the database if it doesn't exist."""
-    if not os.path.exists(DB_PATH):
-        import build_db
-        build_db.build()
+    """Create the applications table if it doesn't exist."""
+    conn = get_db()
+    try:
+        if USE_POSTGRES:
+            conn.cursor().execute('''
+                CREATE TABLE IF NOT EXISTS applications (
+                    id SERIAL PRIMARY KEY,
+                    first_name TEXT NOT NULL,
+                    last_name TEXT NOT NULL,
+                    date_of_birth TEXT NOT NULL,
+                    medicaid_id TEXT NOT NULL,
+                    cell_phone TEXT NOT NULL,
+                    home_phone TEXT,
+                    email TEXT NOT NULL,
+                    street_address TEXT NOT NULL,
+                    apt_unit TEXT,
+                    city TEXT NOT NULL,
+                    state TEXT NOT NULL DEFAULT 'NY',
+                    zipcode TEXT NOT NULL,
+                    health_categories TEXT,
+                    is_employed TEXT NOT NULL,
+                    spouse_employed TEXT NOT NULL,
+                    has_wic TEXT NOT NULL,
+                    has_snap TEXT NOT NULL,
+                    food_allergies TEXT,
+                    is_new_applicant TEXT NOT NULL,
+                    household_members TEXT,
+                    status TEXT DEFAULT 'new',
+                    admin_notes TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            conn.commit()
+        else:
+            if not os.path.exists(os.environ.get('DB_PATH', 'nourishny.db')):
+                import build_db
+                build_db.build()
+    except Exception as e:
+        print(f'[DB INIT] {e}')
+    finally:
+        conn.close()
 
 
 # ── Email helpers ────────────────────────────────────────────────────────────
@@ -186,7 +283,7 @@ def submit_application():
 
     conn = get_db()
     try:
-        conn.execute('''
+        db_execute(conn, '''
             INSERT INTO applications (
                 first_name, last_name, date_of_birth, medicaid_id,
                 cell_phone, home_phone, email,
@@ -283,14 +380,13 @@ def list_applications():
 
     # Count total
     count_q = query.replace('SELECT *', 'SELECT COUNT(*)')
-    total = conn.execute(count_q, params).fetchone()[0]
+    total = db_fetchval(conn, count_q, params)
 
     # Fetch page
     query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?'
     params.extend([per_page, (page - 1) * per_page])
 
-    rows = conn.execute(query, params).fetchall()
-    apps = [dict(r) for r in rows]
+    apps = db_fetchall(conn, query, params)
 
     # Parse JSON fields
     for a in apps:
@@ -316,12 +412,11 @@ def list_applications():
 @require_admin
 def get_application(app_id):
     conn = get_db()
-    row = conn.execute('SELECT * FROM applications WHERE id = ?', (app_id,)).fetchone()
+    a = db_fetchone(conn, 'SELECT * FROM applications WHERE id = ?', (app_id,))
     conn.close()
-    if not row:
+    if not a:
         return jsonify({'error': 'Application not found'}), 404
 
-    a = dict(row)
     try:
         a['health_categories'] = json.loads(a['health_categories'] or '[]')
     except (json.JSONDecodeError, TypeError):
@@ -343,7 +438,7 @@ def update_status(app_id):
         return jsonify({'error': 'Invalid status'}), 400
 
     conn = get_db()
-    conn.execute(
+    db_execute(conn,
         'UPDATE applications SET status = ?, admin_notes = ?, updated_at = ? WHERE id = ?',
         (status, notes, datetime.now().isoformat(), app_id)
     )
@@ -359,17 +454,16 @@ def export_csv():
     import io
 
     conn = get_db()
-    rows = conn.execute('SELECT * FROM applications ORDER BY created_at DESC').fetchall()
+    apps = db_fetchall(conn, 'SELECT * FROM applications ORDER BY created_at DESC')
     conn.close()
 
     output = io.StringIO()
     writer = csv.writer(output)
-    if rows:
-        writer.writerow(rows[0].keys())
-        for row in rows:
-            writer.writerow(list(row))
+    if apps:
+        writer.writerow(apps[0].keys())
+        for a in apps:
+            writer.writerow(list(a.values()))
 
-    from flask import Response
     return Response(
         output.getvalue(),
         mimetype='text/csv',
@@ -381,11 +475,11 @@ def export_csv():
 @require_admin
 def admin_stats():
     conn = get_db()
-    total = conn.execute('SELECT COUNT(*) FROM applications').fetchone()[0]
-    new = conn.execute("SELECT COUNT(*) FROM applications WHERE status = 'new'").fetchone()[0]
-    enrolled = conn.execute("SELECT COUNT(*) FROM applications WHERE status = 'enrolled'").fetchone()[0]
-    reviewed = conn.execute("SELECT COUNT(*) FROM applications WHERE status = 'reviewed'").fetchone()[0]
-    rejected = conn.execute("SELECT COUNT(*) FROM applications WHERE status = 'rejected'").fetchone()[0]
+    total = db_fetchval(conn, 'SELECT COUNT(*) FROM applications')
+    new = db_fetchval(conn, "SELECT COUNT(*) FROM applications WHERE status = 'new'")
+    enrolled = db_fetchval(conn, "SELECT COUNT(*) FROM applications WHERE status = 'enrolled'")
+    reviewed = db_fetchval(conn, "SELECT COUNT(*) FROM applications WHERE status = 'reviewed'")
+    rejected = db_fetchval(conn, "SELECT COUNT(*) FROM applications WHERE status = 'rejected'")
     conn.close()
     return jsonify({
         'total': total, 'new': new, 'enrolled': enrolled,
