@@ -52,7 +52,7 @@ def send_email(to_email, subject, html_body):
             import resend
             resend.api_key = RESEND_API_KEY
             r = resend.Emails.send({
-                'from': 'NourishNY <onboarding@resend.dev>',
+                'from': 'NourishNY <hello@nourish-ny.com>',
                 'to': [to_email],
                 'subject': subject,
                 'html': html_body
