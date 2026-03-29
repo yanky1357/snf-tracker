@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QR Code — NourishNY</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">&#9752;</span>
+        <span class="logo-text">NourishNY</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="thankyou-main">
+    <div class="container container-sm center">
+      <h1 style="font-family:var(--font-serif);color:var(--green);">Your QR Code</h1>
+      <p class="text-muted" style="margin-bottom:24px;">People scan this code to go directly to your application page. Right-click the image to save it, then add it to your posters.</p>
+
+      <div class="card" style="display:inline-block;padding:32px;">
+        <img id="qrImage" src="/api/qr?size=12" alt="NourishNY QR Code" style="width:300px;height:300px;" />
+        <p style="margin-top:16px;font-size:1.1rem;font-weight:700;color:var(--green);">NourishNY</p>
+        <p style="font-size:0.85rem;color:var(--text-mid);">Free Healthy Meals Delivered to Your Door</p>
+        <p id="qrUrl" style="font-size:0.8rem;color:var(--text-light);margin-top:4px;"></p>
+      </div>
+
+      <div style="margin-top:24px;">
+        <a id="downloadBtn" class="btn btn-lg" href="/api/qr?size=20" download="nourishny-qr.png">Download High-Res QR Code</a>
+      </div>
+
+      <div class="card" style="margin-top:32px;text-align:left;">
+        <h3 style="color:var(--green);margin-bottom:12px;">Poster Tips</h3>
+        <ul style="color:var(--text-mid);line-height:2;">
+          <li>Print the QR code large enough to scan easily (at least 2x2 inches)</li>
+          <li>Add text like "Scan for FREE healthy meals delivered to your door"</li>
+          <li>Include "NourishNY" and your phone number on the poster</li>
+          <li>Place posters in community centers, laundromats, clinics, and grocery stores</li>
+          <li>The QR code links directly to your website where people can apply</li>
+        </ul>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>&copy; 2026 NourishNY &mdash; An SCN Approved Vendor serving New York families.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Show the URL the QR code points to
+    document.getElementById('qrUrl').textContent = window.location.origin;
+  </script>
+</body>
+</html>

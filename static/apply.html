@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apply — NourishNY</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body class="page-apply">
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">&#9752;</span>
+        <span class="logo-text">NourishNY</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="apply-main">
+    <div class="container container-sm">
+      <h1 class="form-title">Your Household &amp; Needs</h1>
+      <p class="form-subtitle">Tell us about yourself and your household</p>
+
+      <form id="applicationForm" novalidate>
+
+        <!-- Personal Information -->
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-icon">&#127968;</span>
+            <h3>Personal Information</h3>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="first_name">First Name <span class="req">*</span></label>
+              <input type="text" id="first_name" name="first_name" placeholder="Enter first name" required />
+            </div>
+            <div class="form-group">
+              <label for="last_name">Last Name <span class="req">*</span></label>
+              <input type="text" id="last_name" name="last_name" placeholder="Enter last name" required />
+            </div>
+            <div class="form-group">
+              <label for="date_of_birth">Date of Birth <span class="req">*</span></label>
+              <input type="text" id="date_of_birth" name="date_of_birth" placeholder="MM/DD/YYYY" required />
+            </div>
+            <div class="form-group">
+              <label for="medicaid_id">Medicaid ID <span class="req">*</span></label>
+              <input type="text" id="medicaid_id" name="medicaid_id" placeholder="E.g. AB12345C" required maxlength="8" />
+              <span class="hint">2 letters + 5 numbers + 1 letter (found on your Medicaid/insurance card)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-icon">&#128222;</span>
+            <h3>Contact Information</h3>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="cell_phone">Cell Phone <span class="req">*</span></label>
+              <input type="tel" id="cell_phone" name="cell_phone" placeholder="(555) 123-4567" required />
+            </div>
+            <div class="form-group">
+              <label for="home_phone">Home Phone</label>
+              <input type="tel" id="home_phone" name="home_phone" placeholder="(555) 123-4567" />
+            </div>
+          </div>
+          <div class="form-group full-width">
+            <label for="email">Email Address <span class="req">*</span></label>
+            <input type="email" id="email" name="email" placeholder="your@email.com" required />
+          </div>
+        </div>
+
+        <!-- Address -->
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-icon">&#128205;</span>
+            <h3>Address</h3>
+          </div>
+          <p class="card-note">Your address must be in New York to be eligible.</p>
+          <div class="form-group full-width">
+            <label for="street_address">Street Address <span class="req">*</span></label>
+            <input type="text" id="street_address" name="street_address" placeholder="e.g., 123 Main St" required />
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="apt_unit">Apt/Unit/Suite</label>
+              <input type="text" id="apt_unit" name="apt_unit" placeholder="e.g., Apt 7A" />
+            </div>
+            <div class="form-group">
+              <label for="city">City <span class="req">*</span></label>
+              <input type="text" id="city" name="city" placeholder="Brooklyn" required />
+            </div>
+            <div class="form-group">
+              <label for="state">State <span class="req">*</span></label>
+              <input type="text" id="state" name="state" value="NY" readonly required />
+            </div>
+            <div class="form-group">
+              <label for="zipcode">Zipcode <span class="req">*</span></label>
+              <input type="text" id="zipcode" name="zipcode" placeholder="e.g., 11206" required maxlength="5" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Health Categories -->
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-icon">&#128154;</span>
+            <h3>Health Categories</h3>
+          </div>
+          <p class="card-note">Check off any category that applies to you or a family member</p>
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" name="health_categories" value="Enrolled in Health Home Care Management" />
+              <span>Enrolled in Health Home Care Management</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="health_categories" value="Pregnant" />
+              <span>Pregnant</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="health_categories" value="Had a Miscarriage" />
+              <span>Had a Miscarriage</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="health_categories" value="Postpartum (Within the last 12 months)" />
+              <span>Postpartum (Within the last 12 months)</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="health_categories" value="Substance Use Disorder diagnosis" />
+              <span>Substance Use Disorder diagnosis</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="health_categories" value="Serious Mental Illness diagnosis" />
+              <span>Serious Mental Illness diagnosis</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="health_categories" value="Child under 18 with chronic condition" />
+              <span>Child under the age of 18 diagnosed with a chronic condition</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="health_categories" value="Any other health condition" />
+              <span>Any other health condition</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Benefits & Employment -->
+        <div class="form-card">
+          <div class="card-header">
+            <h3>Benefits &amp; Employment</h3>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="is_employed">Are you Employed? <span class="req">*</span></label>
+              <select id="is_employed" name="is_employed" required>
+                <option value="">Select...</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="spouse_employed">Is the Spouse Employed? <span class="req">*</span></label>
+              <select id="spouse_employed" name="spouse_employed" required>
+                <option value="">Select...</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+                <option value="N/A">N/A</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="has_wic">Do you have WIC? <span class="req">*</span></label>
+              <select id="has_wic" name="has_wic" required>
+                <option value="">Select...</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="has_snap">Do you have SNAP? <span class="req">*</span></label>
+              <select id="has_snap" name="has_snap" required>
+                <option value="">Select...</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="food_allergies">Food Allergies / Dietary Restrictions</label>
+              <input type="text" id="food_allergies" name="food_allergies" placeholder="e.g., Nut allergy, Gluten-free" />
+            </div>
+            <div class="form-group">
+              <label for="is_new_applicant">New Applicant? <span class="req">*</span></label>
+              <select id="is_new_applicant" name="is_new_applicant" required>
+                <option value="">Select...</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Household Members -->
+        <div class="form-card">
+          <div class="card-header">
+            <h3>Additional Household Members</h3>
+          </div>
+          <p class="card-note">List spouse, children, and infants (do NOT enter the applicant again). Only include those currently active on Medicaid.</p>
+          <div class="form-group" style="max-width:280px;">
+            <label for="num_members">Number of Additional Members</label>
+            <select id="num_members">
+              <option value="0">None</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+              <option value="9">9</option>
+              <option value="10">10</option>
+            </select>
+          </div>
+          <div id="householdMembers"></div>
+        </div>
+
+        <!-- Submit -->
+        <div class="form-actions">
+          <button type="submit" class="btn btn-lg btn-block" id="submitBtn">Submit Application &rarr;</button>
+        </div>
+
+        <div id="formError" class="form-error" style="display:none;"></div>
+      </form>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>&copy; 2026 NourishNY &mdash; An SCN Approved Vendor serving New York families.</p>
+      <p class="text-muted-sm">Confidential &bull; SCN Approved &bull; Local &amp; Fresh</p>
+    </div>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

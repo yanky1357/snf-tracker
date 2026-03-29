@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "nourishny",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["/tmp/nourishny_start.py"],
+      "port": 5001
+    }
+  ]
+}

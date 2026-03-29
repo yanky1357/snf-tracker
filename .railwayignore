@@ -1,0 +1,8 @@
+*.csv
+snf_ownership.db-shm
+snf_ownership.db-wal
+__pycache__/
+*.pyc
+.claude/
+build_db.py
+README.txt

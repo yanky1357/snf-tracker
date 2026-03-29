@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — NourishNY</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body class="page-admin">
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">&#9752;</span>
+        <span class="logo-text">NourishNY</span>
+      </a>
+      <button id="logoutBtn" class="btn btn-sm btn-outline" style="display:none;" onclick="adminLogout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- Login -->
+  <div id="loginView" class="admin-login">
+    <div class="login-card card">
+      <h2>Admin Login</h2>
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="adminPassword">Password</label>
+          <input type="password" id="adminPassword" placeholder="Enter admin password" required />
+        </div>
+        <div id="loginError" class="form-error" style="display:none;"></div>
+        <button type="submit" class="btn btn-block">Login</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboardView" style="display:none;">
+    <main class="admin-main">
+      <div class="container">
+        <h1 class="admin-title">Applications Dashboard</h1>
+
+        <!-- Stats -->
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card">
+            <div class="stat-num" id="statTotal">0</div>
+            <div class="stat-label">Total</div>
+          </div>
+          <div class="stat-card stat-new">
+            <div class="stat-num" id="statNew">0</div>
+            <div class="stat-label">New</div>
+          </div>
+          <div class="stat-card stat-reviewed">
+            <div class="stat-num" id="statReviewed">0</div>
+            <div class="stat-label">Reviewed</div>
+          </div>
+          <div class="stat-card stat-enrolled">
+            <div class="stat-num" id="statEnrolled">0</div>
+            <div class="stat-label">Enrolled</div>
+          </div>
+          <div class="stat-card stat-rejected">
+            <div class="stat-num" id="statRejected">0</div>
+            <div class="stat-label">Rejected</div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-row">
+          <input type="text" id="searchInput" placeholder="Search name, Medicaid ID, email, phone..." class="filter-search" />
+          <select id="statusFilter" class="filter-select">
+            <option value="">All Statuses</option>
+            <option value="new">New</option>
+            <option value="reviewed">Reviewed</option>
+            <option value="enrolled">Enrolled</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <a href="/api/admin/export" class="btn btn-sm btn-outline">Export CSV</a>
+        </div>
+
+        <!-- Table -->
+        <div class="table-wrap">
+          <table class="admin-table" id="appTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Medicaid ID</th>
+                <th>Phone</th>
+                <th>City</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="appTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="detailModal" class="modal" style="display:none;">
+    <div class="modal-overlay" onclick="closeModal()"></div>
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+      <div id="detailContent"></div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
