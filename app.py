@@ -5,10 +5,8 @@ import os
 import json
 import sqlite3
 import re
-import smtplib
 import threading
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import urllib.request
 from datetime import datetime
 from functools import wraps
 
@@ -21,8 +19,8 @@ DB_PATH = os.environ.get('DB_PATH', 'nourishny.db')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 
 # Email config — set these environment variables in production
-SMTP_EMAIL = os.environ.get('SMTP_EMAIL', '')        # Your Gmail address
-SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', '')   # Gmail App Password
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')  # Get from resend.com
+FROM_EMAIL = os.environ.get('FROM_EMAIL', 'onboarding@resend.dev')  # Resend default sender
 ADMIN_NOTIFY_EMAIL = os.environ.get('ADMIN_NOTIFY_EMAIL', '')  # Where to send notifications
 SITE_URL = os.environ.get('SITE_URL', 'http://localhost:5001')
 
@@ -46,30 +44,31 @@ def init_db():
 # ── Email helpers ────────────────────────────────────────────────────────────
 
 def send_email(to_email, subject, html_body):
-    """Send an email via Gmail SMTP in a background thread."""
-    if not SMTP_EMAIL or not SMTP_PASSWORD:
-        print(f'[EMAIL SKIPPED] No SMTP credentials configured. Would send to {to_email}: {subject}')
+    """Send an email via Resend API in a background thread."""
+    if not RESEND_API_KEY:
+        print(f'[EMAIL SKIPPED] No RESEND_API_KEY configured. Would send to {to_email}: {subject}')
         return
 
     def _send():
         try:
-            msg = MIMEMultipart('alternative')
-            msg['From'] = f'NourishNY <{SMTP_EMAIL}>'
-            msg['To'] = to_email
-            msg['Subject'] = subject
-            msg.attach(MIMEText(html_body, 'html'))
+            payload = json.dumps({
+                'from': f'NourishNY <{FROM_EMAIL}>',
+                'to': [to_email],
+                'subject': subject,
+                'html': html_body
+            }).encode('utf-8')
 
-            # Try port 587 (STARTTLS) first, then fall back to 465 (SSL)
-            try:
-                with smtplib.SMTP('smtp.gmail.com', 587, timeout=10) as server:
-                    server.starttls()
-                    server.login(SMTP_EMAIL, SMTP_PASSWORD)
-                    server.send_message(msg)
-            except (OSError, smtplib.SMTPException):
-                with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=10) as server:
-                    server.login(SMTP_EMAIL, SMTP_PASSWORD)
-                    server.send_message(msg)
-            print(f'[EMAIL SENT] To: {to_email} Subject: {subject}')
+            req = urllib.request.Request(
+                'https://api.resend.com/emails',
+                data=payload,
+                headers={
+                    'Authorization': f'Bearer {RESEND_API_KEY}',
+                    'Content-Type': 'application/json'
+                },
+                method='POST'
+            )
+            resp = urllib.request.urlopen(req, timeout=10)
+            print(f'[EMAIL SENT] To: {to_email} Subject: {subject} Status: {resp.status}')
         except Exception as e:
             print(f'[EMAIL ERROR] {e}')
 
