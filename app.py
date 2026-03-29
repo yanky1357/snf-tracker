@@ -7,6 +7,7 @@ import sqlite3
 import re
 import threading
 import urllib.request
+import urllib.error
 from datetime import datetime
 from functools import wraps
 
@@ -68,7 +69,11 @@ def send_email(to_email, subject, html_body):
                 method='POST'
             )
             resp = urllib.request.urlopen(req, timeout=10)
-            print(f'[EMAIL SENT] To: {to_email} Subject: {subject} Status: {resp.status}')
+            body = resp.read().decode('utf-8')
+            print(f'[EMAIL SENT] To: {to_email} Subject: {subject} Status: {resp.status} Body: {body}')
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode('utf-8')
+            print(f'[EMAIL ERROR] Status: {e.code} Body: {error_body}')
         except Exception as e:
             print(f'[EMAIL ERROR] {e}')
 
