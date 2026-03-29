@@ -1,0 +1,12 @@
+# Raw data CSVs (large, not needed for deploy)
+SNF_All_Owners_*.csv
+*.db-shm
+*.db-wal
+
+# Python
+__pycache__/
+*.pyc
+.env
+
+# Mac
+.DS_Store

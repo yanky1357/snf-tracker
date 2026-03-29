@@ -1,0 +1,1574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SNF Ownership Tracker</title>
+  <style>
+/* ── Reset & Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --primary:       #ffffff;
+  --primary-mid:   #f2f2f7;
+  --accent:        #007AFF;
+  --accent-hover:  #0056CC;
+  --bg:            #F2F2F7;
+  --surface:       #ffffff;
+  --border:        rgba(60,60,67,.12);
+  --text:          #000000;
+  --text-muted:    rgba(60,60,67,.6);
+  --text-light:    rgba(60,60,67,.36);
+  --radius:        12px;
+  --shadow:        0 1px 3px rgba(0,0,0,.04), 0 2px 8px rgba(0,0,0,.05);
+  --shadow-lg:     0 8px 30px rgba(0,0,0,.12);
+  --pe-bg:#fee2e2; --pe-fg:#b91c1c;
+  --llc-bg:#dbeafe; --llc-fg:#1d4ed8;
+  --corp-bg:#ede9fe; --corp-fg:#6d28d9;
+  --hold-bg:#ffedd5; --hold-fg:#c2410c;
+  --inv-bg:#e0f2fe; --inv-fg:#0369a1;
+  --np-bg:#d1fae5; --np-fg:#065f46;
+  --reit-bg:#fef9c3; --reit-fg:#854d0e;
+  --trust-bg:#f3e8ff; --trust-fg:#7e22ce;
+  --fp-bg:#f1f5f9; --fp-fg:#475569;
+  --chain-bg:#e0f2fe; --chain-fg:#0369a1;
+  --mgmt-bg:#ecfdf5; --mgmt-fg:#059669;
+}
+
+html { font-size: 15px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+header {
+  background: rgba(255,255,255,.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 0.5px solid rgba(60,60,67,.18);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  height: 56px;
+}
+.brand { display: flex; align-items: center; gap: .6rem; flex-shrink: 0; }
+.brand-icon { width: 28px; height: 28px; color: var(--accent); flex-shrink: 0; }
+.brand-title { font-size: .95rem; font-weight: 700; letter-spacing: -.02em; white-space: nowrap; color: #000; }
+.brand-sub { font-size: .65rem; color: var(--text-muted); white-space: nowrap; }
+
+/* ── Tabs ───────────────────────────────────────────────────────────── */
+.tabs { display: flex; gap: .1rem; align-items: center; }
+.tab {
+  background: transparent; border: none; color: var(--text-muted);
+  font: 500 .85rem -apple-system, sans-serif;
+  padding: .4rem .85rem; border-radius: 8px; cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.tab:hover  { background: rgba(0,0,0,.05); color: var(--text); }
+.tab.active { background: rgba(0,122,255,.1); color: var(--accent); font-weight: 600; }
+
+/* ── Main ───────────────────────────────────────────────────────────── */
+main { flex: 1; max-width: 1280px; width: 100%; margin: 0 auto; padding: 1.5rem; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Search area ────────────────────────────────────────────────────── */
+.search-area {
+  background: var(--surface); border: none; border-radius: var(--radius);
+  box-shadow: none; padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem; display: flex; flex-direction: column; gap: .75rem;
+}
+.search-box { position: relative; display: flex; align-items: center; }
+.search-icon {
+  position: absolute; left: .85rem; width: 17px; height: 17px;
+  stroke: var(--text-muted); pointer-events: none;
+}
+#search-input {
+  width: 100%; padding: .65rem 2.5rem .65rem 2.5rem;
+  font: .95rem -apple-system, sans-serif;
+  border: 1.5px solid transparent;
+  border-radius: 10px; outline: none; transition: border-color .2s, background .2s, box-shadow .2s;
+  color: var(--text); background: rgba(118,118,128,.12);
+}
+#search-input::placeholder { color: var(--text-muted); }
+#search-input:focus { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(0,122,255,.12); }
+.clear-btn {
+  position: absolute; right: .75rem; background: none; border: none;
+  color: var(--text-muted); font-size: 1rem; cursor: pointer; padding: .2rem; line-height: 1;
+}
+.clear-btn:hover { color: var(--text); }
+.filters { display: flex; gap: .6rem; flex-wrap: wrap; }
+.filters select {
+  padding: .45rem .7rem; font: .875rem -apple-system, sans-serif;
+  border: 1.5px solid transparent; border-radius: 9px;
+  background: rgba(118,118,128,.12); color: var(--text); cursor: pointer;
+  outline: none; transition: border-color .2s, background .2s; min-width: 150px;
+}
+.filters select:focus { border-color: var(--accent); background: #fff; }
+
+/* ── Welcome ────────────────────────────────────────────────────────── */
+#welcome { display: none; justify-content: center; margin-top: 2rem; }
+#welcome:not([hidden]) { display: flex; }
+.welcome-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 2rem 2.5rem; max-width: 680px; text-align: center;
+}
+.welcome-card h2 { font-size: 1.35rem; font-weight: 700; color: var(--text); margin-bottom: .75rem; }
+.welcome-card p { color: var(--text-muted); line-height: 1.6; margin-bottom: 1.5rem; }
+.welcome-tips { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; text-align: left; }
+.tip { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: .75rem; font-size: .8rem; color: var(--text-muted); line-height: 1.5; }
+.tip-label { display: block; font-weight: 700; color: var(--accent); font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .2rem; }
+
+/* ── Results ────────────────────────────────────────────────────────── */
+#results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; }
+#results-count { font-size: .85rem; color: var(--text-muted); }
+#results-list { display: flex; flex-direction: column; gap: .6rem; }
+.result-card {
+  background: var(--surface); border: none; border-radius: var(--radius); box-shadow: none;
+  padding: 1rem 1.25rem; display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 1rem; transition: opacity .15s;
+}
+.result-card:hover { opacity: .85; }
+.result-main { flex: 1; min-width: 0; }
+.result-name { font-weight: 600; font-size: .975rem; color: var(--text); margin-bottom: .3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-meta { font-size: .78rem; color: var(--text-muted); margin-bottom: .45rem; }
+.result-meta span + span::before { content: ' · '; }
+.badge-row { display: flex; flex-wrap: wrap; gap: .3rem; }
+.badge { font-size: .68rem; font-weight: 600; padding: .15rem .5rem; border-radius: 6px; white-space: nowrap; letter-spacing: .01em; }
+.badge-pe         { background: var(--pe-bg);    color: var(--pe-fg); }
+.badge-llc        { background: var(--llc-bg);   color: var(--llc-fg); }
+.badge-corp       { background: var(--corp-bg);  color: var(--corp-fg); }
+.badge-holding    { background: var(--hold-bg);  color: var(--hold-fg); }
+.badge-investment { background: var(--inv-bg);   color: var(--inv-fg); }
+.badge-nonprofit  { background: var(--np-bg);    color: var(--np-fg); }
+.badge-reit       { background: var(--reit-bg);  color: var(--reit-fg); }
+.badge-trust      { background: var(--trust-bg); color: var(--trust-fg); }
+.badge-forprofit  { background: var(--fp-bg);    color: var(--fp-fg); }
+.badge-chain      { background: var(--chain-bg); color: var(--chain-fg); }
+.badge-mgmt       { background: var(--mgmt-bg);  color: var(--mgmt-fg); }
+.badge-default    { background: #1e1e1e; color: #94a3b8; }
+.chain-btn {
+  flex-shrink: 0; background: rgba(0,122,255,.1); color: var(--accent); border: none;
+  border-radius: 8px; padding: .4rem .85rem; font: 600 .78rem -apple-system, sans-serif;
+  cursor: pointer; white-space: nowrap; transition: background .15s; align-self: center;
+}
+.chain-btn:hover { background: rgba(0,122,255,.18); }
+
+/* ── Pagination ─────────────────────────────────────────────────────── */
+#pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1.25rem; }
+#pagination button, #state-pagination button {
+  background: var(--surface); border: none; border-radius: 8px;
+  padding: .45rem .9rem; font: .85rem -apple-system, sans-serif; cursor: pointer;
+  color: var(--accent); transition: background .15s; box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+#pagination button:hover:not(:disabled),
+#state-pagination button:hover { background: rgba(0,122,255,.08); }
+#pagination button:disabled { opacity: .35; cursor: default; }
+#page-info, #state-page-info { font-size: .85rem; color: var(--text-muted); }
+
+/* ── Loading / Empty ────────────────────────────────────────────────── */
+.loading-state { display: flex; align-items: center; justify-content: center; gap: .75rem; padding: 3rem; color: var(--text-muted); }
+.spinner { width: 22px; height: 22px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty-state { text-align: center; padding: 3rem; color: var(--text-muted); }
+.empty-state h3 { font-size: 1rem; font-weight: 600; margin-bottom: .4rem; color: var(--text); }
+
+/* ── Map ────────────────────────────────────────────────────────────── */
+.map-layout { display: grid; grid-template-columns: 260px 1fr; gap: 1.25rem; align-items: start; }
+.map-sidebar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.25rem; }
+.map-sidebar h3 { font-size: .95rem; font-weight: 700; color: var(--text); margin-bottom: .4rem; }
+.map-hint { font-size: .78rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4; }
+#map-legend { margin-bottom: 1.25rem; }
+.legend-gradient { height: 10px; border-radius: 5px; background: linear-gradient(to right, #c7d2fe, #4338ca); margin-bottom: .3rem; }
+.legend-labels { display: flex; justify-content: space-between; font-size: .72rem; color: var(--text-muted); }
+.map-main { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1rem; position: relative; overflow: hidden; }
+#us-map { width: 100%; height: auto; display: block; }
+.map-state { cursor: pointer; transition: opacity .15s; }
+.map-state:hover { opacity: .75; }
+.map-state.selected { stroke: #4338ca !important; stroke-width: 2px; }
+.map-tooltip { position: absolute; background: var(--primary); border: none; color: #fff; font-size: .78rem; padding: .4rem .7rem; border-radius: 5px; pointer-events: none; white-space: nowrap; z-index: 10; }
+#state-panel { margin-top: 1rem; }
+#state-panel-header { font-size: .9rem; font-weight: 700; color: var(--text); margin-bottom: .6rem; padding-bottom: .5rem; border-bottom: 1px solid var(--border); }
+.state-facility-item { padding: .5rem 0; border-bottom: 1px solid var(--border); font-size: .8rem; }
+.state-facility-item:last-child { border-bottom: none; }
+.state-facility-name { font-weight: 600; color: var(--primary); cursor: pointer; display: block; margin-bottom: .15rem; }
+.state-facility-name:hover { text-decoration: underline; }
+.state-facility-meta { color: var(--text-muted); font-size: .73rem; }
+#state-pagination { display: flex; align-items: center; justify-content: center; gap: .5rem; margin-top: .75rem; }
+
+/* ── Modal ──────────────────────────────────────────────────────────── */
+#chain-modal { position: fixed; inset: 0; z-index: 200; display: none; align-items: center; justify-content: center; padding: 1rem; }
+#chain-modal:not([hidden]) { display: flex; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.4); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.modal-panel { position: relative; background: var(--surface); border: none; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.25); width: 100%; max-width: 760px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+.modal-header { background: #fff; border-bottom: 0.5px solid rgba(60,60,67,.15); padding: 1.1rem 1.5rem; display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-shrink: 0; }
+.modal-subtitle { font-size: .7rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); margin-bottom: .2rem; }
+.modal-header h2 { font-size: 1.05rem; font-weight: 700; line-height: 1.3; margin-bottom: .25rem; color: #000; }
+#modal-state-badge { font-size: .75rem; background: rgba(0,122,255,.1); display: inline-block; padding: .15rem .5rem; border-radius: 6px; color: var(--accent); }
+.modal-close { background: rgba(118,118,128,.15); border: none; color: var(--text-muted); width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 1rem; flex-shrink: 0; transition: background .15s; display: flex; align-items: center; justify-content: center; }
+.modal-close:hover { background: rgba(118,118,128,.25); color: #000; }
+.modal-body { flex: 1; overflow-y: auto; padding: 1.5rem; }
+.modal-footer { padding: .75rem 1.5rem; border-top: 1px solid var(--border); color: var(--text-muted); flex-shrink: 0; }
+
+/* ── Chain view ─────────────────────────────────────────────────────── */
+.no-chain { text-align: center; padding: 2rem; color: var(--text-muted); font-size: .875rem; }
+.cv-section { margin-bottom: 1.5rem; }
+.cv-section:last-child { margin-bottom: 0; }
+.cv-section-header { display: flex; align-items: center; gap: .6rem; margin-bottom: .85rem; padding-bottom: .5rem; border-bottom: 2px solid var(--border); }
+.cv-section-icon { width: 30px; height: 30px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+.cv-section-icon.ops { background: #eef2ff; }
+.cv-section-icon.own { background: #f0fdf4; }
+.cv-section-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); }
+.cv-section-title { font-size: .98rem; font-weight: 700; color: var(--text); line-height: 1.2; }
+.cv-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .7rem .9rem; margin-bottom: .5rem; }
+.cv-card:last-child { margin-bottom: 0; }
+.cv-card.ultimate { border-color: #a7f3d0; background: #f0fdf4; }
+.cv-card-top { display: flex; align-items: flex-start; gap: .75rem; }
+.cv-card-pct { min-width: 3.2rem; text-align: center; flex-shrink: 0; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 7px; padding: .35rem .4rem; line-height: 1.1; }
+.cv-card-pct-num { font-size: 1.05rem; font-weight: 800; color: var(--accent); display: block; }
+.cv-card-pct-lbl { font-size: .58rem; font-weight: 500; color: var(--text-muted); }
+.cv-card-body { flex: 1; min-width: 0; }
+.cv-card-name { font-weight: 700; font-size: .88rem; color: var(--text); line-height: 1.3; }
+.cv-card-role { font-size: .75rem; color: var(--text-muted); margin-top: .1rem; }
+.cv-card-loc  { font-size: .71rem; color: var(--text-light); margin-top: .1rem; }
+.cv-card-badges { margin-top: .35rem; }
+.cv-ultimate-label { display: inline-flex; align-items: center; gap: .2rem; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #059669; margin-top: .3rem; }
+.cv-expand-btn { display: flex; align-items: center; gap: .4rem; margin-top: .6rem; background: none; border: 1px dashed #c7d2fe; border-radius: 6px; padding: .35rem .75rem; cursor: pointer; width: 100%; font: 500 .78rem/1.3 inherit; color: var(--accent); transition: background .15s, border-color .15s; text-align: left; }
+.cv-expand-btn:hover { background: #eef2ff; border-color: var(--accent); }
+.cv-expand-btn.open { border-style: solid; }
+.cv-children { margin-top: .5rem; margin-left: .9rem; padding-left: .85rem; border-left: 2px solid #c7d2fe; display: none; }
+.cv-children.open { display: block; }
+
+/* ── About ──────────────────────────────────────────────────────────── */
+.about-content { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 2rem 2.5rem; max-width: 800px; line-height: 1.7; }
+.about-content h2 { font-size: 1.4rem; color: var(--text); margin-bottom: 1rem; }
+.about-content h3 { font-size: 1rem; color: var(--text); margin: 1.5rem 0 .5rem; }
+.about-content p { color: var(--text-muted); margin-bottom: .5rem; }
+.about-content ul { color: var(--text-muted); padding-left: 1.25rem; }
+.about-content li { margin-bottom: .4rem; }
+.about-content strong { color: var(--text); }
+
+/* ── Search mode toggle (iOS segmented control) ─────────────────────── */
+.search-mode { display: inline-flex; background: rgba(118,118,128,.12); border-radius: 9px; padding: 2px; margin-bottom: .65rem; gap: 0; }
+.mode-btn { background: transparent; border: none; color: var(--text-muted); font: 500 .82rem -apple-system, sans-serif; padding: .3rem .9rem; border-radius: 7px; cursor: pointer; transition: all .18s; }
+.mode-btn.active { background: #fff; color: #000; font-weight: 600; box-shadow: 0 2px 6px rgba(0,0,0,.12), 0 0.5px 1px rgba(0,0,0,.08); }
+.mode-btn:hover:not(.active) { color: var(--text); }
+
+/* ── Owner cards ────────────────────────────────────────────────────── */
+.owner-card { background: var(--surface); border: none; border-radius: var(--radius); box-shadow: none; padding: 1rem 1.25rem; display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; transition: opacity .15s; }
+.owner-card:hover { opacity: .85; }
+.owner-name { font-weight: 700; font-size: .975rem; color: var(--text); margin-bottom: .15rem; }
+.owner-type-label { font-size: .72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: .35rem; }
+.owner-meta { font-size: .78rem; color: var(--text-muted); margin-bottom: .4rem; }
+.owner-meta span + span::before { content: ' · '; }
+.owner-fac-pill { display: inline-flex; align-items: center; gap: .3rem; background: #eef2ff; color: #4338ca; font: 600 .75rem 'Inter', sans-serif; padding: .2rem .55rem; border-radius: 20px; }
+
+/* ── Owner profile modal content ────────────────────────────────────── */
+#owner-modal { position: fixed; inset: 0; z-index: 200; display: none; align-items: center; justify-content: center; padding: 1rem; }
+#owner-modal:not([hidden]) { display: flex; }
+.owner-profile-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+.owner-stat-block { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: .85rem 1rem; text-align: center; }
+.owner-stat-val { font-size: 1.5rem; font-weight: 800; color: var(--text); line-height: 1; margin-bottom: .2rem; }
+.owner-stat-lbl { font-size: .7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.owner-detail-row { display: flex; gap: .5rem; margin-bottom: .5rem; font-size: .85rem; }
+.owner-detail-label { font-weight: 600; color: var(--text-muted); min-width: 80px; flex-shrink: 0; }
+.owner-detail-val { color: var(--text); }
+.owner-fac-section h4 { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 700; margin-bottom: .75rem; padding-bottom: .4rem; border-bottom: 1px solid var(--border); }
+.chain-overview { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: .75rem 1rem; margin-bottom: 1rem; }
+.chain-overview-title { font-size: .72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .06em; margin-bottom: .5rem; }
+.chain-overview-name { font-size: .9rem; font-weight: 700; color: #1e293b; margin-bottom: .4rem; }
+.chain-ov-flags { display: flex; flex-direction: column; gap: .3rem; margin-bottom: .5rem; }
+.chain-ov-flag { font-size: .78rem; padding: .25rem .5rem; border-radius: 4px; }
+.chain-ov-flag.red   { background: #fee2e2; color: #991b1b; }
+.chain-ov-flag.amber { background: #fef3c7; color: #92400e; }
+.chain-ov-meta { font-size: .78rem; color: #64748b; }
+.owner-fac-row { display: flex; justify-content: space-between; align-items: flex-start; padding: .5rem 0; border-bottom: 1px solid var(--border); }
+.owner-fac-row:last-child { border-bottom: none; }
+.owner-fac-clickable { cursor: pointer; border-radius: 6px; padding: .5rem .4rem; margin: 0 -.4rem; transition: background .15s; }
+.owner-fac-clickable:hover { background: var(--bg); }
+.owner-fac-clickable:hover .owner-fac-chain-hint { opacity: 1; }
+.owner-fac-main { flex: 1; min-width: 0; }
+.owner-fac-chain-hint { font-size: .72rem; font-weight: 600; color: var(--accent); opacity: 0; transition: opacity .15s; white-space: nowrap; padding-left: .75rem; align-self: center; }
+.owner-fac-name { font-weight: 600; font-size: .85rem; color: var(--text); flex: 1; min-width: 0; margin-right: .75rem; }
+.owner-fac-meta { font-size: .72rem; color: var(--text-muted); margin-top: .1rem; }
+.owner-fac-pct { font-size: .8rem; font-weight: 700; color: var(--accent); white-space: nowrap; flex-shrink: 0; }
+
+/* ── Sellers tab ────────────────────────────────────────────────────── */
+.sellers-intro { background: var(--surface); border: none; border-radius: var(--radius); box-shadow: none; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+.sellers-intro h2 { font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: .3rem; }
+.sellers-intro p { font-size: .85rem; color: var(--text-muted); line-height: 1.5; }
+.seller-criteria { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; }
+.seller-criterion { display: flex; align-items: center; gap: .3rem; font-size: .75rem; color: var(--text-muted); background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: .2rem .65rem; }
+.seller-criterion::before { content: '✓'; color: #059669; font-weight: 700; }
+.stars { font-size: .95rem; letter-spacing: .05em; }
+.star-on  { color: #f59e0b; }
+.star-off { color: #d1d5db; }
+.stars-na { font-size: .75rem; color: var(--text-light); font-style: italic; }
+.rating-row { display: flex; align-items: center; gap: .5rem; margin-top: .25rem; flex-wrap: wrap; }
+.seller-filters { background: var(--surface); border: none; border-radius: var(--radius); box-shadow: none; padding: 1rem 1.5rem; margin-bottom: 1rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; }
+.filter-group { display: flex; flex-direction: column; gap: .3rem; }
+.filter-group label { font-size: .68rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; }
+.filter-group select { padding: .42rem .7rem; font: .875rem -apple-system, sans-serif; border: 1.5px solid transparent; border-radius: 9px; background: rgba(118,118,128,.12); color: var(--text); cursor: pointer; outline: none; min-width: 140px; transition: border-color .2s, background .2s; }
+.filter-group select:focus { border-color: var(--accent); background: #fff; }
+.seller-search-btn { background: var(--accent); color: #fff; border: none; border-radius: 12px; padding: .5rem 1.4rem; font: 600 .875rem -apple-system, sans-serif; cursor: pointer; transition: background .15s; white-space: nowrap; }
+.seller-search-btn:hover { background: var(--accent-hover); }
+#seller-results-header { margin-bottom: .75rem; font-size: .85rem; color: var(--text-muted); }
+#seller-list { display: flex; flex-direction: column; gap: .6rem; }
+#seller-pagination { display: none; align-items: center; justify-content: center; gap: 1rem; margin-top: 1.25rem; }
+#seller-pagination:not([hidden]) { display: flex; }
+#seller-pagination button { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: .45rem .9rem; font: .85rem 'Inter', sans-serif; cursor: pointer; color: var(--text); transition: border-color .15s, background .15s; }
+#seller-pagination button:hover:not(:disabled) { border-color: var(--accent); background: #eef2ff; }
+#seller-pagination button:disabled { opacity: .3; cursor: default; }
+
+/* ── Seller cards ───────────────────────────────────────────────────── */
+.seller-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1rem 1.25rem; display: flex; align-items: flex-start; gap: 1.25rem; transition: border-color .2s, box-shadow .2s; }
+.seller-card:hover { border-color: #cbd5e1; box-shadow: var(--shadow-lg); }
+.seller-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .35rem; }
+.seller-stats { display: flex; gap: .85rem; flex-shrink: 0; }
+.seller-stat { display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 60px; gap: .15rem; }
+.seller-stat-val { font-size: 1.25rem; font-weight: 800; color: var(--text); line-height: 1; }
+.seller-stat-label { font-size: .62rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.v-divider { width: 1px; background: var(--border); align-self: stretch; flex-shrink: 0; }
+.seller-info { flex: 1; min-width: 0; }
+.seller-name { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: .2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.seller-location { font-size: .78rem; color: var(--text-muted); margin-bottom: .25rem; }
+.seller-since { font-size: .75rem; color: var(--text-muted); }
+.seller-since strong { color: var(--text); }
+.btn-view-profile { flex-shrink: 0; background: rgba(0,122,255,.1); border: none; color: var(--accent); border-radius: 8px; padding: .4rem .9rem; font: 600 .78rem -apple-system, sans-serif; cursor: pointer; white-space: nowrap; transition: background .15s; }
+.btn-view-profile:hover { background: rgba(0,122,255,.2); }
+
+/* ── Responsive ─────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .header-inner { height: auto; padding: .75rem 1rem; flex-wrap: wrap; }
+  .brand-sub { display: none; }
+  main { padding: 1rem; }
+  .map-layout { grid-template-columns: 1fr; }
+  .welcome-tips { grid-template-columns: 1fr; }
+  .modal-panel { max-height: 95vh; }
+  .owner-profile-grid { grid-template-columns: repeat(2, 1fr); }
+  .seller-card { flex-wrap: wrap; }
+}
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <svg class="brand-icon" width="32" height="32" viewBox="0 0 24 24" fill="none">
+          <rect x="8" y="2" width="8" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.7" fill="currentColor" fill-opacity=".15"/>
+          <path d="M12 7.5v3M7 10.5h10M7 10.5v3M17 10.5v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="2" y="13.5" width="7" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.7" fill="currentColor" fill-opacity=".15"/>
+          <rect x="15" y="13.5" width="7" height="5.5" rx="1.5" stroke="currentColor" stroke-width="1.7" fill="currentColor" fill-opacity=".15"/>
+        </svg>
+        <div>
+          <div class="brand-title">SNF Ownership Tracker</div>
+          <div class="brand-sub">Skilled Nursing Facility Ownership &mdash; CMS Data, March 2026</div>
+        </div>
+      </div>
+      <nav class="tabs">
+        <button class="tab active" data-tab="search">Search</button>
+        <button class="tab" data-tab="map">Map</button>
+        <button class="tab" data-tab="sellers">Find Sellers</button>
+        <button class="tab" data-tab="about">About</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ── Main ───────────────────────────────────────────────────────────── -->
+  <main>
+
+    <!-- Search Tab -->
+    <div id="tab-search" class="tab-panel active">
+      <div class="search-area">
+        <div class="search-mode">
+          <button class="mode-btn active" data-mode="facilities">Facilities</button>
+          <button class="mode-btn" data-mode="owners">Owners</button>
+        </div>
+        <div class="search-box">
+          <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input id="search-input" type="text"
+            placeholder="Search by facility name, owner name, or company..." autocomplete="off" />
+          <button id="clear-btn" class="clear-btn" title="Clear" hidden>&#x2715;</button>
+        </div>
+        <div class="filters">
+          <select id="filter-state">
+            <option value="">All States</option>
+          </select>
+          <select id="filter-type">
+            <option value="">All Owner Types</option>
+            <option value="Private Equity">Private Equity</option>
+            <option value="Holding Company">Holding Company</option>
+            <option value="Investment Firm">Investment Firm</option>
+            <option value="LLC">LLC</option>
+            <option value="Corporation">Corporation</option>
+            <option value="Non-Profit">Non-Profit</option>
+            <option value="REIT">REIT</option>
+            <option value="Trust/Trustee">Trust/Trustee</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="results-area">
+        <div id="welcome">
+          <div class="welcome-card">
+            <h2>Explore Nursing Home Ownership</h2>
+            <p>This tool lets you trace ownership relationships for every Medicare-enrolled skilled nursing facility in the United States, using public data from the Centers for Medicare &amp; Medicaid Services (CMS).</p>
+            <div class="welcome-tips">
+              <div class="tip"><span class="tip-label">Search</span>Type a facility name, owner's name, or company</div>
+              <div class="tip"><span class="tip-label">Filter</span>Narrow by state or owner type (LLC, Private Equity, etc.)</div>
+              <div class="tip"><span class="tip-label">Chain</span>Click any result to trace the full ownership chain</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="results-header" hidden>
+          <span id="results-count"></span>
+        </div>
+        <div id="results-list"></div>
+        <div id="pagination" hidden>
+          <button id="prev-btn" disabled>&#8592; Previous</button>
+          <span id="page-info"></span>
+          <button id="next-btn">Next &#8594;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Map Tab -->
+    <div id="tab-map" class="tab-panel" hidden>
+      <div class="map-layout">
+        <div class="map-sidebar">
+          <h3>Facilities by State</h3>
+          <p class="map-hint">Click a state on the map to see its facilities.</p>
+          <div id="map-legend">
+            <div class="legend-gradient"></div>
+            <div class="legend-labels"><span>Fewer</span><span>More</span></div>
+          </div>
+          <div id="state-panel" hidden>
+            <div id="state-panel-header"></div>
+            <div id="state-facilities"></div>
+            <div id="state-pagination" hidden>
+              <button id="state-prev">&#8592;</button>
+              <span id="state-page-info"></span>
+              <button id="state-next">&#8594;</button>
+            </div>
+          </div>
+        </div>
+        <div class="map-main">
+          <div id="map-tooltip" class="map-tooltip" hidden></div>
+          <svg id="us-map"></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- About Tab -->
+    <div id="tab-about" class="tab-panel" hidden>
+      <div class="about-content">
+        <h2>About This Tool</h2>
+        <p>The <strong>SNF Ownership Tracker</strong> is a public-interest research tool that makes it easy to explore the complex ownership structures of Medicare-enrolled skilled nursing facilities across the United States.</p>
+        <h3>Data Source</h3>
+        <p>All data comes from the <strong>Centers for Medicare &amp; Medicaid Services (CMS)</strong> Provider Enrollment, Chain, and Ownership System (PECOS), released under the CMS Open Data Initiative. Dataset reflects ownership as of <strong>March 2, 2026</strong> and covers over 14,000 facilities.</p>
+        <h3>How to Read Ownership Chains</h3>
+        <p>Each facility may have multiple owners. When an owner is itself owned by another entity, click <em>View Ownership Chain</em> to trace that relationship upward through as many layers as the data supports.</p>
+        <h3>Owner Type Definitions</h3>
+        <ul>
+          <li><strong>Private Equity</strong> &mdash; A private equity company holds a direct or indirect ownership interest.</li>
+          <li><strong>Holding Company</strong> &mdash; An entity created primarily to hold ownership interests in other companies.</li>
+          <li><strong>Investment Firm</strong> &mdash; A firm that invests capital in exchange for ownership stakes.</li>
+          <li><strong>LLC</strong> &mdash; A limited liability company holds an ownership interest.</li>
+          <li><strong>Corporation</strong> &mdash; A corporate entity holds an ownership interest.</li>
+          <li><strong>REIT</strong> &mdash; A real estate investment trust has an ownership or financial interest.</li>
+          <li><strong>Non-Profit</strong> &mdash; The facility is owned or operated by a non-profit organization.</li>
+          <li><strong>Trust/Trustee</strong> &mdash; Ownership is held in trust.</li>
+        </ul>
+        <h3>Limitations</h3>
+        <ul>
+          <li>Ownership chains may be incomplete if a holding company is not itself enrolled in PECOS.</li>
+          <li>Facility states are derived from owner address data when direct facility addresses are unavailable.</li>
+          <li>Data reflects enrollment records and may differ from current operational ownership.</li>
+        </ul>
+        <h3>Data Currency</h3>
+        <p>Dataset: CMS SNF All Owners, released 2026-03-02. This tool is not affiliated with CMS.</p>
+      </div>
+    </div>
+
+    <!-- Sellers Tab -->
+    <div id="tab-sellers" class="tab-panel" hidden>
+      <div class="sellers-intro">
+        <h2>Find Motivated Sellers</h2>
+        <p>Identify long-tenured small-portfolio owners with no institutional investor involvement — the strongest candidates for a sale. Filter by state, portfolio size, and years of ownership.</p>
+      </div>
+      <div class="seller-filters">
+        <div class="filter-group">
+          <label>State</label>
+          <select id="seller-state-filter"><option value="">All States</option></select>
+        </div>
+        <div class="filter-group">
+          <label>Max Facilities</label>
+          <select id="seller-max-fac-filter">
+            <option value="1">1 facility</option>
+            <option value="2">Up to 2</option>
+            <option value="3">Up to 3</option>
+            <option value="5" selected>Up to 5</option>
+            <option value="10">Up to 10</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Min. Years Owned</label>
+          <select id="seller-min-years-filter">
+            <option value="5">5+ years</option>
+            <option value="10" selected>10+ years</option>
+            <option value="15">15+ years</option>
+            <option value="20">20+ years</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Min. CMS Rating</label>
+          <select id="seller-min-rating-filter">
+            <option value="">Any Rating</option>
+            <option value="3">3+ Stars</option>
+            <option value="4">4+ Stars</option>
+            <option value="5">5 Stars</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Ownership Type</label>
+          <select id="seller-ownership-type-filter">
+            <option value="">Any Type</option>
+            <option value="for-profit">For-Profit</option>
+            <option value="non-profit">Non-Profit</option>
+            <option value="government">Government</option>
+          </select>
+        </div>
+        <button class="seller-search-btn" id="seller-search-btn">Search Sellers</button>
+      </div>
+      <div id="seller-results-header" hidden><span id="seller-count"></span></div>
+      <div id="seller-list">
+        <div class="empty-state">
+          <h3>Ready to Search</h3>
+          <p>Set your filters above and click <strong>Search Sellers</strong> to find motivated seller candidates.</p>
+        </div>
+      </div>
+      <div id="seller-pagination" hidden>
+        <button id="seller-prev-btn" disabled>&#8592; Previous</button>
+        <span id="seller-page-info"></span>
+        <button id="seller-next-btn">Next &#8594;</button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── Ownership Chain Modal ───────────────────────────────────────────── -->
+  <div id="chain-modal" hidden>
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-panel">
+      <div class="modal-header">
+        <div>
+          <div class="modal-subtitle">Ownership Chain</div>
+          <h2 id="modal-title"></h2>
+          <div id="modal-state-badge"></div>
+        </div>
+        <button class="modal-close" id="modal-close" title="Close">&#x2715;</button>
+      </div>
+      <div class="modal-body">
+        <div id="chain-loading" class="loading-state">
+          <div class="spinner"></div>
+          <span>Tracing ownership chain...</span>
+        </div>
+        <div id="chain-tree"></div>
+      </div>
+      <div class="modal-footer">
+        <small>Data: CMS PECOS, March 2026 &bull; Green = ultimate owner (no further parents found)</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Owner Profile Modal ─────────────────────────────────────────────── -->
+  <div id="owner-modal" hidden>
+    <div class="modal-backdrop" id="owner-backdrop"></div>
+    <div class="modal-panel" style="max-width:680px">
+      <div class="modal-header">
+        <div>
+          <div class="modal-subtitle">Owner Profile</div>
+          <h2 id="owner-modal-name"></h2>
+          <div id="owner-modal-badge"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0">
+          <button class="modal-close" id="owner-modal-back" title="Go back" onclick="history.back()" style="font-size:.8rem;width:auto;padding:0 .6rem;display:flex;align-items:center;gap:.3rem">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M5 12l7-7M5 12l7 7"/></svg>
+            Back
+          </button>
+          <button class="modal-close" id="owner-modal-close" title="Close">&#x2715;</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div id="owner-modal-loading" class="loading-state">
+          <div class="spinner"></div><span>Loading profile...</span>
+        </div>
+        <div id="owner-modal-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- External CDN scripts (D3 + TopoJSON for the map) -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+
+  <script>
+/* ── App state ──────────────────────────────────────────────────────────── */
+const appState = {
+  page: 1, totalPages: 1,
+  mapStatePage: 1, mapStateTotalPages: 1,
+  selectedMapState: null,
+};
+
+/* ── Badge helpers ──────────────────────────────────────────────────────── */
+const BADGE_CLASS = {
+  'Private Equity':'pe','LLC':'llc','Corporation':'corp','Holding Co.':'holding',
+  'Investment Firm':'investment','Non-Profit':'nonprofit','REIT':'reit',
+  'Trust/Trustee':'trust','For-Profit':'forprofit','Chain Office':'chain','Mgmt. Co.':'mgmt',
+};
+function makeBadge(label) {
+  return `<span class="badge badge-${BADGE_CLASS[label]||'default'}">${label}</span>`;
+}
+function badgeRow(str) {
+  if (!str) return '';
+  const arr = Array.isArray(str) ? str : str.split(',');
+  return arr.filter(Boolean).map(makeBadge).join('');
+}
+function esc(s) {
+  return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function starRating(n) {
+  if (n == null) return '<span class="stars-na">N/A</span>';
+  const full = Math.round(n);
+  return '<span class="stars" title="' + n + ' stars">' +
+    Array.from({length:5},(_,i)=>`<span class="${i<full?'star-on':'star-off'}">★</span>`).join('') +
+    '</span>';
+}
+function ratingBadge(overall, specialFocus, abuseIcon) {
+  let html = starRating(overall);
+  if (specialFocus && specialFocus !== '') html += `<span class="badge badge-pe" title="Special Focus: ${esc(specialFocus)}">SFF</span>`;
+  if (abuseIcon === 'Y') html += `<span class="badge badge-pe" title="Abuse icon">⚠ Abuse</span>`;
+  return html;
+}
+
+/* ── API ────────────────────────────────────────────────────────────────── */
+async function api(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+/* ── Tabs ───────────────────────────────────────────────────────────────── */
+let currentTab = 'search';
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentTab = btn.dataset.tab;
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => { p.classList.remove('active'); p.hidden = true; });
+    btn.classList.add('active');
+    const panel = document.getElementById('tab-' + btn.dataset.tab);
+    panel.hidden = false;
+    panel.classList.add('active');
+    if (btn.dataset.tab === 'map') initMap();
+    if (btn.dataset.tab === 'sellers') initSellersTab();
+  });
+});
+
+/* ── Search ─────────────────────────────────────────────────────────────── */
+const searchInput = document.getElementById('search-input');
+const clearBtn    = document.getElementById('clear-btn');
+const filterState = document.getElementById('filter-state');
+const filterType  = document.getElementById('filter-type');
+
+let searchMode = 'facilities';
+let debounceTimer;
+
+function profileUrl(enrollmentId) {
+  const params = new URLSearchParams();
+  params.set('id', enrollmentId);
+  if (currentTab === 'sellers') {
+    params.set('tab', 'sellers');
+    params.set('seller_state',      document.getElementById('seller-state-filter')?.value      || '');
+    params.set('seller_max_fac',    document.getElementById('seller-max-fac-filter')?.value    || '5');
+    params.set('seller_min_years',  document.getElementById('seller-min-years-filter')?.value  || '10');
+    params.set('seller_min_rating',     document.getElementById('seller-min-rating-filter')?.value     || '');
+    params.set('seller_ownership_type', document.getElementById('seller-ownership-type-filter')?.value || '');
+    params.set('seller_page', sellerState.page || 1);
+  } else {
+    const q     = document.getElementById('search-input')?.value?.trim();
+    const state = document.getElementById('filter-state')?.value;
+    const type  = document.getElementById('filter-type')?.value;
+    if (q)     params.set('q', q);
+    if (state) params.set('state', state);
+    if (type)  params.set('type', type);
+    params.set('page', appState.page || 1);
+    params.set('mode', searchMode || 'facilities');
+  }
+  return '/facility?' + params.toString();
+}
+
+function dispatchSearch() {
+  if (searchMode === 'owners') { ownerState.page = 1; doOwnerSearch(); }
+  else { appState.page = 1; doSearch(); }
+}
+
+searchInput.addEventListener('input', () => {
+  clearBtn.hidden = !searchInput.value;
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(dispatchSearch, 400);
+});
+searchInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { clearTimeout(debounceTimer); dispatchSearch(); }
+});
+clearBtn.addEventListener('click', () => {
+  searchInput.value = ''; clearBtn.hidden = true; dispatchSearch();
+});
+filterState.addEventListener('change', dispatchSearch);
+filterType.addEventListener('change',  () => { appState.page = 1; doSearch(); });
+document.getElementById('prev-btn').addEventListener('click', () => {
+  if (searchMode === 'owners') { if (ownerState.page > 1) { ownerState.page--; doOwnerSearch(false); } }
+  else { if (appState.page > 1) { appState.page--; doSearch(false); } }
+});
+document.getElementById('next-btn').addEventListener('click', () => {
+  if (searchMode === 'owners') { if (ownerState.page < ownerState.totalPages) { ownerState.page++; doOwnerSearch(false); } }
+  else { if (appState.page < appState.totalPages) { appState.page++; doSearch(false); } }
+});
+
+async function doSearch(scrollTop = true) {
+  const welcome       = document.getElementById('welcome');
+  const resultsHeader = document.getElementById('results-header');
+  const resultsList   = document.getElementById('results-list');
+  const pagination    = document.getElementById('pagination');
+
+  welcome.hidden = true;
+  resultsHeader.hidden = true;
+  pagination.hidden = true;
+  resultsList.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Searching...</span></div>';
+
+  const p = new URLSearchParams({ page: appState.page });
+  const q = searchInput.value.trim();
+  if (q)                 p.set('q', q);
+  if (filterState.value) p.set('state', filterState.value);
+  if (filterType.value)  p.set('owner_type', filterType.value);
+
+  try {
+    const data = await api('/api/search?' + p);
+    appState.totalPages = data.total_pages;
+
+    if (!data.facilities.length) {
+      resultsList.innerHTML = '<div class="empty-state"><h3>No facilities found</h3><p>Try a different search term or remove a filter.</p></div>';
+      resultsHeader.hidden = false;
+      document.getElementById('results-count').textContent = '0 results' + (q ? ` for "${q}"` : '');
+      return;
+    }
+
+    const from = (appState.page - 1) * data.per_page + 1;
+    const to   = Math.min(appState.page * data.per_page, data.total);
+    resultsHeader.hidden = false;
+    document.getElementById('results-count').textContent =
+      `Showing ${from}\u2013${to} of ${data.total.toLocaleString()} facilities${q ? ` matching \u201c${q}\u201d` : ''}`;
+
+    resultsList.innerHTML = data.facilities.map(f => `
+      <div class="result-card">
+        <div class="result-main">
+          <div class="result-name" title="${esc(f.organization_name)}">${esc(f.organization_name)}</div>
+          <div class="result-meta">
+            <span>${f.provider_name && f.provider_name !== f.organization_name ? esc(f.provider_name) + ' · ' : ''}${f.facility_state || 'Unknown state'}${f.city ? ', ' + esc(f.city) : ''}</span>
+            <span>${f.owner_count} ownership record${f.owner_count !== 1 ? 's' : ''}</span>
+          </div>
+          <div class="rating-row">${ratingBadge(f.overall_rating, f.special_focus, f.abuse_icon)}</div>
+          <div class="badge-row">${badgeRow(f.owner_types)}</div>
+        </div>
+        <button class="chain-btn" data-eid="${esc(f.enrollment_id)}" data-name="${esc(f.organization_name)}">
+          View Profile
+        </button>
+      </div>`).join('');
+
+    resultsList.querySelectorAll('.chain-btn').forEach(btn =>
+      btn.addEventListener('click', () => window.location.href = profileUrl(btn.dataset.eid))
+    );
+
+    pagination.hidden = data.total_pages <= 1;
+    document.getElementById('prev-btn').disabled = appState.page <= 1;
+    document.getElementById('next-btn').disabled = appState.page >= appState.totalPages;
+    document.getElementById('page-info').textContent = `Page ${appState.page} of ${appState.totalPages}`;
+    if (scrollTop) window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (err) {
+    resultsList.innerHTML = `<div class="empty-state"><h3>Could not load results</h3><p>${err.message}</p></div>`;
+  }
+}
+
+/* ── State filter ───────────────────────────────────────────────────────── */
+const US_NAMES = {
+  AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',
+  CT:'Connecticut',DE:'Delaware',DC:'D.C.',FL:'Florida',GA:'Georgia',HI:'Hawaii',
+  ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',
+  LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',
+  MN:'Minnesota',MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',
+  NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',NM:'New Mexico',NY:'New York',
+  NC:'North Carolina',ND:'North Dakota',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',
+  PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',
+  TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',
+  WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming',
+};
+
+(async () => {
+  try {
+    const states = await api('/api/states');
+    filterState.innerHTML = '<option value="">All States</option>' +
+      states.map(s => `<option value="${s.state}">${US_NAMES[s.state]||s.state} (${s.count.toLocaleString()})</option>`).join('');
+  } catch (_) {}
+})();
+
+/* ── Ownership chain modal ──────────────────────────────────────────────── */
+const modal      = document.getElementById('chain-modal');
+const chainTree  = document.getElementById('chain-tree');
+const chainLoad  = document.getElementById('chain-loading');
+
+function openChain(eid, name) {
+  modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+  document.getElementById('modal-title').textContent = name || eid;
+  document.getElementById('modal-state-badge').textContent = '';
+  chainTree.innerHTML = '';
+  chainLoad.style.display = 'flex';
+  loadChain(eid);
+}
+function closeModal() { modal.hidden = true; document.body.style.overflow = ''; }
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('modal-backdrop').addEventListener('click', closeModal);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+async function loadChain(eid) {
+  try {
+    const data = await api('/api/chain/' + encodeURIComponent(eid));
+    chainLoad.style.display = 'none';
+    if (data.state) document.getElementById('modal-state-badge').textContent = 'State: ' + data.state;
+    if (!data.owners || !data.owners.length) {
+      chainTree.innerHTML = '<div class="no-chain">No ownership records found.</div>'; return;
+    }
+    chainTree.appendChild(buildChainView(data));
+  } catch (err) {
+    chainLoad.style.display = 'none';
+    chainTree.innerHTML = `<div class="no-chain">Error: ${err.message}</div>`;
+  }
+}
+
+/* ── Chain view redesign ────────────────────────────────────────────────── */
+const ROLE_LABELS = {
+  '5% OR GREATER DIRECT OWNERSHIP INTEREST':   'Owner',
+  '5% OR GREATER INDIRECT OWNERSHIP INTEREST': 'Indirect Owner',
+  'OPERATIONAL/MANAGERIAL CONTROL':            'Operator',
+  'CONTRACTED MANAGING EMPLOYEE':              'Management Company',
+  'CORPORATE OFFICER':                         'Corporate Officer',
+  'CORPORATE DIRECTOR':                        'Board Director',
+  'W-2 MANAGING EMPLOYEE':                     'Managing Employee',
+  'GENERAL PARTNERSHIP INTEREST':              'General Partner',
+  'LIMITED PARTNERSHIP INTEREST':              'Limited Partner',
+  'TRUSTEE OF THE SNF':                        'Trustee',
+  'DIRECT OWNERSHIP INTEREST':                 'Owner',
+  'INDIRECT OWNERSHIP INTEREST':               'Indirect Owner',
+  'MANAGING CONTROL - GOVERNING BODY':         'Governing Body Member',
+  'ADP OF THE SNF':                            'Administrator',
+  '5% OR GREATER MORTGAGE INTEREST':           'Mortgage Holder',
+  '5% OR GREATER SECURITY INTEREST':           'Security Interest Holder',
+  'OTHER':                                     'Other Role',
+};
+const OPS_ROLES = new Set([
+  'CONTRACTED MANAGING EMPLOYEE','CORPORATE OFFICER','CORPORATE DIRECTOR',
+  'W-2 MANAGING EMPLOYEE','OPERATIONAL/MANAGERIAL CONTROL',
+  'MANAGING CONTROL - GOVERNING BODY','ADP OF THE SNF','OTHER',
+]);
+const OWN_ROLES = new Set([
+  '5% OR GREATER DIRECT OWNERSHIP INTEREST','5% OR GREATER INDIRECT OWNERSHIP INTEREST',
+  'GENERAL PARTNERSHIP INTEREST','LIMITED PARTNERSHIP INTEREST','TRUSTEE OF THE SNF',
+  'DIRECT OWNERSHIP INTEREST','INDIRECT OWNERSHIP INTEREST',
+  '5% OR GREATER MORTGAGE INTEREST','5% OR GREATER SECURITY INTEREST',
+]);
+
+function plainRole(raw) {
+  if (!raw) return '';
+  return ROLE_LABELS[raw.toUpperCase()] || raw;
+}
+
+function isOpsOwner(owner) {
+  const r = (owner.role || '').toUpperCase();
+  if (OPS_ROLES.has(r)) return true;
+  if (OWN_ROLES.has(r)) return false;
+  return !/ownership|partnership|trustee|interest/i.test(owner.role);
+}
+
+function buildOwnerCard(owner, depth) {
+  const isUltimate = !owner.owned_by_another && !(owner.children && owner.children.length) && depth > 0;
+  const card = document.createElement('div');
+  card.className = 'cv-card' + (isUltimate ? ' ultimate' : '');
+
+  const top = document.createElement('div');
+  top.className = 'cv-card-top';
+
+  // Percentage pill
+  const pct = document.createElement('div');
+  pct.className = 'cv-card-pct';
+  if (owner.percentage && parseFloat(owner.percentage) > 0) {
+    pct.textContent = parseFloat(owner.percentage).toFixed(0) + '%';
+  } else {
+    pct.style.visibility = 'hidden';
+  }
+  top.appendChild(pct);
+
+  // Body
+  const body = document.createElement('div');
+  body.style.flex = '1';
+  body.style.minWidth = '0';
+
+  const name = document.createElement('div');
+  name.className = 'cv-card-name';
+  name.textContent = owner.display_name;
+  body.appendChild(name);
+
+  if (owner.role) {
+    const role = document.createElement('div');
+    role.className = 'cv-card-role';
+    role.textContent = plainRole(owner.role);
+    body.appendChild(role);
+  }
+
+  if (owner.state) {
+    const state = document.createElement('div');
+    state.className = 'cv-card-state';
+    state.textContent = owner.state;
+    body.appendChild(state);
+  }
+
+  if (owner.types && owner.types.length) {
+    const badges = document.createElement('div');
+    badges.className = 'cv-card-badges badge-row';
+    badges.innerHTML = owner.types.map(makeBadge).join('');
+    body.appendChild(badges);
+  }
+
+  if (isUltimate) {
+    const ul = document.createElement('div');
+    ul.className = 'cv-ultimate-label';
+    ul.textContent = '\u2713 Ultimate Owner';
+    body.appendChild(ul);
+  }
+
+  top.appendChild(body);
+  card.appendChild(top);
+
+  // Expand button for companies with parent owners
+  if (owner.children && owner.children.length) {
+    const btn = document.createElement('button');
+    btn.className = 'cv-expand-btn';
+    btn.textContent = '\u2193 See who owns ' + owner.display_name;
+
+    const childrenDiv = document.createElement('div');
+    childrenDiv.className = 'cv-children';
+
+    let rendered = false;
+    btn.addEventListener('click', () => {
+      if (!rendered) {
+        owner.children.forEach(child => childrenDiv.appendChild(buildOwnerCard(child, depth + 1)));
+        rendered = true;
+      }
+      const open = childrenDiv.classList.toggle('open');
+      btn.classList.toggle('open', open);
+      btn.textContent = open
+        ? '\u2191 Hide owners of ' + owner.display_name
+        : '\u2193 See who owns ' + owner.display_name;
+    });
+
+    card.appendChild(btn);
+    card.appendChild(childrenDiv);
+  }
+
+  return card;
+}
+
+function buildChainSection(owners, sectionType) {
+  if (!owners.length) return null;
+  const sec = document.createElement('div');
+  sec.className = 'cv-section';
+
+  const hdr = document.createElement('div');
+  hdr.className = 'cv-section-header';
+
+  const icon = document.createElement('div');
+  icon.className = 'cv-section-icon ' + sectionType;
+  icon.textContent = sectionType === 'ops' ? '\u2699\ufe0f' : '\ud83c\udfe2';
+  hdr.appendChild(icon);
+
+  const titleWrap = document.createElement('div');
+  const small = document.createElement('div');
+  small.className = 'cv-section-title';
+  small.textContent = sectionType === 'ops' ? 'MANAGEMENT' : 'OWNERSHIP';
+  const big = document.createElement('strong');
+  big.style.fontSize = '1rem';
+  big.textContent = sectionType === 'ops' ? 'Operators & Key Personnel' : 'Ownership & Financial Interest';
+  titleWrap.appendChild(small);
+  titleWrap.appendChild(big);
+  hdr.appendChild(titleWrap);
+  sec.appendChild(hdr);
+
+  owners.forEach(owner => sec.appendChild(buildOwnerCard(owner, 0)));
+  return sec;
+}
+
+function buildChainView(data) {
+  const wrap = document.createElement('div');
+
+  // Facility name header
+  const facHdr = document.createElement('div');
+  facHdr.className = 'chain-facility';
+  facHdr.textContent = data.display_name;
+  wrap.appendChild(facHdr);
+
+  const opsOwners = data.owners.filter(o => isOpsOwner(o));
+  const ownOwners = data.owners.filter(o => !isOpsOwner(o));
+
+  const opsSection = buildChainSection(opsOwners, 'ops');
+  const ownSection = buildChainSection(ownOwners, 'own');
+
+  if (ownSection) wrap.appendChild(ownSection);
+  if (opsSection) wrap.appendChild(opsSection);
+
+  if (!opsSection && !ownSection) {
+    const empty = document.createElement('div');
+    empty.className = 'no-chain';
+    empty.textContent = 'No ownership records found.';
+    wrap.appendChild(empty);
+  }
+
+  return wrap;
+}
+
+/* ── Map ────────────────────────────────────────────────────────────────── */
+let mapInitialized = false;
+const STATE_FIPS = {
+  '01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT',
+  '10':'DE','11':'DC','12':'FL','13':'GA','15':'HI','16':'ID','17':'IL',
+  '18':'IN','19':'IA','20':'KS','21':'KY','22':'LA','23':'ME','24':'MD',
+  '25':'MA','26':'MI','27':'MN','28':'MS','29':'MO','30':'MT','31':'NE',
+  '32':'NV','33':'NH','34':'NJ','35':'NM','36':'NY','37':'NC','38':'ND',
+  '39':'OH','40':'OK','41':'OR','42':'PA','44':'RI','45':'SC','46':'SD',
+  '47':'TN','48':'TX','49':'UT','50':'VT','51':'VA','53':'WA','54':'WV',
+  '55':'WI','56':'WY',
+};
+const STATE_NAMES_MAP = Object.assign({}, US_NAMES, { DC: 'Washington D.C.' });
+
+async function initMap() {
+  if (mapInitialized) return;
+  mapInitialized = true;
+  const svgEl = document.getElementById('us-map');
+  const tip   = document.getElementById('map-tooltip');
+  try {
+    const [statesData, us] = await Promise.all([
+      api('/api/states'),
+      fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(r => r.json()),
+    ]);
+    const counts = {};
+    statesData.forEach(d => { counts[d.state] = d.count; });
+    const maxVal = Math.max(...Object.values(counts));
+    const color  = d3.scaleSequentialLog(t => d3.interpolateRgb('#e0e7ff', '#3730a3')(t)).domain([1, maxVal]);
+    const W = 960, H = 600;
+    const svg  = d3.select('#us-map').attr('viewBox', `0 0 ${W} ${H}`).attr('preserveAspectRatio', 'xMidYMid meet');
+    const proj = d3.geoAlbersUsa().scale(1300).translate([W/2, H/2]);
+    const path = d3.geoPath().projection(proj);
+    const features = topojson.feature(us, us.objects.states).features;
+    svg.selectAll('path.map-state').data(features).join('path')
+      .attr('class', 'map-state')
+      .attr('d', path)
+      .attr('fill', d => { const a = STATE_FIPS[String(d.id).padStart(2,'0')]; return (a && counts[a]) ? color(counts[a]) : '#e2e8f0'; })
+      .attr('stroke', '#fff').attr('stroke-width', .5)
+      .on('mousemove', (ev, d) => {
+        const a = STATE_FIPS[String(d.id).padStart(2,'0')];
+        const rect = svgEl.getBoundingClientRect();
+        tip.hidden = false;
+        tip.textContent = (STATE_NAMES_MAP[a]||a||'?') + ': ' + ((a && counts[a]) ? counts[a].toLocaleString() + ' facilities' : 'No data');
+        tip.style.left = (ev.clientX - rect.left + 12) + 'px';
+        tip.style.top  = (ev.clientY - rect.top  - 10) + 'px';
+      })
+      .on('mouseleave', () => { tip.hidden = true; })
+      .on('click', (ev, d) => {
+        const a = STATE_FIPS[String(d.id).padStart(2,'0')];
+        if (!a || !counts[a]) return;
+        svg.selectAll('path.map-state').classed('selected', false);
+        d3.select(ev.currentTarget).classed('selected', true);
+        appState.selectedMapState = a;
+        appState.mapStatePage = 1;
+        loadStatePanel(a);
+      });
+    svg.append('path')
+      .datum(topojson.mesh(us, us.objects.states, (a,b) => a !== b))
+      .attr('fill','none').attr('stroke','#fff').attr('stroke-width',.5).attr('d', path);
+  } catch (err) {
+    svgEl.insertAdjacentHTML('afterend', `<p style="color:#b91c1c;padding:1rem">Map failed to load: ${err.message}</p>`);
+  }
+}
+
+/* ── State panel ────────────────────────────────────────────────────────── */
+async function loadStatePanel(abbr, page = 1) {
+  const panel    = document.getElementById('state-panel');
+  const header   = document.getElementById('state-panel-header');
+  const list     = document.getElementById('state-facilities');
+  const pagDiv   = document.getElementById('state-pagination');
+  panel.hidden = false;
+  header.textContent = 'Loading ' + (STATE_NAMES_MAP[abbr]||abbr) + '...';
+  list.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  pagDiv.hidden = true;
+  try {
+    const data = await api(`/api/states/${abbr}?page=${page}`);
+    appState.mapStateTotalPages = data.total_pages;
+    appState.mapStatePage = data.page;
+    header.textContent = (STATE_NAMES_MAP[abbr]||abbr) + ' \u2014 ' + data.total.toLocaleString() + ' facilities';
+    list.innerHTML = data.facilities.map(f => `
+      <div class="state-facility-item">
+        <span class="state-facility-name" data-eid="${esc(f.enrollment_id)}" data-name="${esc(f.organization_name)}">${esc(f.organization_name)}</span>
+        <div class="state-facility-meta badge-row">${badgeRow(f.owner_types)}</div>
+      </div>`).join('');
+    list.querySelectorAll('.state-facility-name').forEach(el =>
+      el.addEventListener('click', () => window.location.href = profileUrl(el.dataset.eid))
+    );
+    if (data.total_pages > 1) {
+      pagDiv.hidden = false;
+      document.getElementById('state-page-info').textContent = `${page} / ${data.total_pages}`;
+      document.getElementById('state-prev').disabled = page <= 1;
+      document.getElementById('state-next').disabled = page >= data.total_pages;
+    }
+  } catch (err) {
+    list.innerHTML = `<p style="color:#b91c1c;font-size:.8rem">${err.message}</p>`;
+  }
+}
+document.getElementById('state-prev').addEventListener('click', () => {
+  if (appState.mapStatePage > 1) loadStatePanel(appState.selectedMapState, --appState.mapStatePage);
+});
+document.getElementById('state-next').addEventListener('click', () => {
+  if (appState.mapStatePage < appState.mapStateTotalPages) loadStatePanel(appState.selectedMapState, ++appState.mapStatePage);
+});
+
+/* ── Owner Search ───────────────────────────────────────────────────────── */
+const ownerState = { page: 1, totalPages: 1 };
+
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    searchMode = btn.dataset.mode;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b === btn));
+    filterType.style.display = searchMode === 'owners' ? 'none' : '';
+    searchInput.placeholder = searchMode === 'owners'
+      ? 'Search by owner name or company...'
+      : 'Search by facility name, owner name, or company...';
+    dispatchSearch();
+  });
+});
+
+async function doOwnerSearch(scrollTop = true) {
+  const welcome       = document.getElementById('welcome');
+  const resultsHeader = document.getElementById('results-header');
+  const resultsList   = document.getElementById('results-list');
+  const pagination    = document.getElementById('pagination');
+
+  welcome.hidden = true;
+  resultsHeader.hidden = true;
+  pagination.hidden = true;
+  resultsList.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Searching owners...</span></div>';
+
+  const p = new URLSearchParams({ page: ownerState.page });
+  const q = searchInput.value.trim();
+  if (q) p.set('q', q);
+  if (filterState.value) p.set('state', filterState.value);
+
+  if (!q && !filterState.value) {
+    resultsList.innerHTML = '<div class="empty-state"><h3>Search for an owner</h3><p>Enter an owner name or company to get started.</p></div>';
+    return;
+  }
+
+  try {
+    const data = await api('/api/owners/search?' + p);
+    ownerState.totalPages = data.total_pages;
+
+    if (!data.owners.length) {
+      resultsList.innerHTML = '<div class="empty-state"><h3>No owners found</h3><p>Try a different name or state.</p></div>';
+      resultsHeader.hidden = false;
+      document.getElementById('results-count').textContent = '0 results' + (q ? ` for "${q}"` : '');
+      return;
+    }
+
+    const from = (ownerState.page - 1) * data.per_page + 1;
+    const to   = Math.min(ownerState.page * data.per_page, data.total);
+    resultsHeader.hidden = false;
+    document.getElementById('results-count').textContent =
+      `Showing ${from}\u2013${to} of ${data.total.toLocaleString()} owners${q ? ` matching \u201c${q}\u201d` : ''}`;
+
+    resultsList.innerHTML = data.owners.map(o => `
+      <div class="owner-card">
+        <div class="owner-card-main">
+          <div class="result-name">${esc(o.display_name)}</div>
+          <div class="result-meta">
+            <span>${[o.city, o.state].filter(Boolean).join(', ') || 'Unknown location'}</span>
+            <span>${o.facility_count} facilit${o.facility_count !== 1 ? 'ies' : 'y'}</span>
+          </div>
+          <div class="badge-row">${badgeRow(o.types || [])}</div>
+        </div>
+        <button class="btn-view-profile" data-aid="${esc(o.associate_id_owner)}" data-name="${esc(o.display_name)}">
+          View Profile
+        </button>
+      </div>`).join('');
+
+    resultsList.querySelectorAll('.btn-view-profile').forEach(btn =>
+      btn.addEventListener('click', () => openOwnerProfile(btn.dataset.aid, btn.dataset.name))
+    );
+
+    pagination.hidden = data.total_pages <= 1;
+    document.getElementById('prev-btn').disabled = ownerState.page <= 1;
+    document.getElementById('next-btn').disabled = ownerState.page >= ownerState.totalPages;
+    document.getElementById('page-info').textContent = `Page ${ownerState.page} of ${ownerState.totalPages}`;
+    if (scrollTop) window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (err) {
+    resultsList.innerHTML = `<div class="empty-state"><h3>Could not load results</h3><p>${err.message}</p></div>`;
+  }
+}
+
+/* ── Owner Profile Modal ────────────────────────────────────────────────── */
+function openOwnerProfile(aid, name) {
+  history.pushState({ ownerModal: true, aid, name }, '', window.location.href);
+  const modal = document.getElementById('owner-modal');
+  modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+  document.getElementById('owner-modal-name').textContent = name || aid;
+  document.getElementById('owner-modal-badge').innerHTML = '';
+  document.getElementById('owner-modal-content').innerHTML = '';
+  document.getElementById('owner-modal-loading').style.display = 'flex';
+  loadOwnerProfile(aid);
+}
+
+window.addEventListener('popstate', function(event) {
+  if (event.state && event.state.ownerModal) {
+    openOwnerProfile(event.state.aid, event.state.name);
+  } else {
+    closeOwnerModal();
+  }
+});
+
+function closeOwnerModal() {
+  document.getElementById('owner-modal').hidden = true;
+  document.body.style.overflow = '';
+}
+
+document.getElementById('owner-modal-close').addEventListener('click', closeOwnerModal);
+document.getElementById('owner-backdrop').addEventListener('click', closeOwnerModal);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !document.getElementById('owner-modal').hidden) closeOwnerModal();
+});
+
+async function loadOwnerProfile(aid) {
+  const loading = document.getElementById('owner-modal-loading');
+  const content = document.getElementById('owner-modal-content');
+  const badge   = document.getElementById('owner-modal-badge');
+  try {
+    const data = await api('/api/owner/' + encodeURIComponent(aid));
+    loading.style.display = 'none';
+    const o = data.owner;
+    badge.innerHTML = badgeRow(o.types || []);
+    const facRows = (data.facilities || []).map(f => `
+      <div class="owner-fac-row owner-fac-clickable" data-eid="${esc(f.enrollment_id)}" data-name="${esc(f.facility_name || f.enrollment_id)}">
+        <div class="owner-fac-main">
+          <div class="owner-fac-name">${esc(f.facility_name || f.enrollment_id)}</div>
+          <div class="owner-fac-meta">
+            <span>${f.facility_state || ''}${f.rating_city ? ', ' + esc(f.rating_city) : ''}${f.rating_address ? ' · ' + esc(f.rating_address) : ''}</span>
+            ${f.percentage_ownership ? `<span class="owner-fac-pill">${f.percentage_ownership}%</span>` : ''}
+          </div>
+          ${f.roles ? `<div style="font-size:.72rem;color:var(--text-muted);margin-top:.15rem">${esc(f.roles)}</div>` : ''}
+          <div class="rating-row">${ratingBadge(f.overall_rating, f.special_focus, f.abuse_icon)}${f.total_fines > 0 ? `<span style="font-size:.7rem;color:#b91c1c;margin-left:.25rem">$${Number(f.total_fines).toLocaleString()} fines</span>` : ''}</div>
+        </div>
+        <button class="btn-view-profile owner-fac-profile-btn" style="align-self:center;margin-left:.75rem" data-eid="${esc(f.enrollment_id)}">View Profile</button>
+      </div>`).join('');
+    content.innerHTML = `
+      <div class="owner-profile-grid">
+        <div class="owner-stat-block"><div class="owner-stat-label">Facilities</div><div class="owner-stat-val">${o.facility_count}</div></div>
+        <div class="owner-stat-block"><div class="owner-stat-label">State</div><div class="owner-stat-val">${o.state || '—'}</div></div>
+        <div class="owner-stat-block"><div class="owner-stat-label">Since</div><div class="owner-stat-val">${o.earliest_date || '—'}</div></div>
+      </div>
+      ${o.city || o.state ? `<div class="owner-detail-row"><span class="owner-detail-label">Location</span><span>${esc([o.city,o.state,o.zip_code].filter(Boolean).join(', '))}</span></div>` : ''}
+      <div class="owner-fac-section">
+        <div class="owner-fac-section-title">Facilities (${(data.facilities||[]).length})</div>
+        ${facRows || '<div style="color:var(--text-muted);font-size:.85rem">No facilities found.</div>'}
+      </div>`;
+
+    // Chain overview — find most common chain_id among facilities
+    const chainFacs = (data.facilities||[]).filter(f => f.chain_id && f.chain_id.trim());
+    if (chainFacs.length > 0) {
+      // Count chain_id occurrences, pick the most common
+      const chainCounts = {};
+      chainFacs.forEach(f => { chainCounts[f.chain_id] = (chainCounts[f.chain_id]||0) + 1; });
+      const topChainId = Object.entries(chainCounts).sort((a,b)=>b[1]-a[1])[0][0];
+      const topChainName = chainFacs.find(f=>f.chain_id===topChainId)?.chain_name || topChainId;
+      fetch('/api/chain-performance/' + encodeURIComponent(topChainId))
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (!d || d.error) return;
+          const c = d.chain, nat = d.national || {};
+          let flags = '';
+          if (c.num_sff > 0) flags += `<div class="chain-ov-flag red">⚠ ${c.num_sff} Special Focus Facilities</div>`;
+          if (c.pct_abuse_icon > 15) flags += `<div class="chain-ov-flag red">⚠ ${c.pct_abuse_icon}% abuse icon rate</div>`;
+          else if (c.pct_abuse_icon > 5) flags += `<div class="chain-ov-flag amber">⚠ ${c.pct_abuse_icon}% abuse icon rate</div>`;
+          if (c.avg_nursing_turnover > 60) flags += `<div class="chain-ov-flag red">⚠ ${c.avg_nursing_turnover}% nursing turnover</div>`;
+          else if (c.avg_nursing_turnover > 45) flags += `<div class="chain-ov-flag amber">⚠ ${c.avg_nursing_turnover}% nursing turnover</div>`;
+          const ratingCmp = c.avg_overall_rating != null && nat.avg_overall_rating != null
+            ? `Chain avg: ${parseFloat(c.avg_overall_rating).toFixed(1)} ★ vs National: ${parseFloat(nat.avg_overall_rating).toFixed(1)} ★`
+            : '';
+          const ov = document.createElement('div');
+          ov.className = 'chain-overview';
+          ov.innerHTML = `<div class="chain-overview-title">Chain Overview</div>
+            <div class="chain-overview-name">${topChainName.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>
+            ${flags ? `<div class="chain-ov-flags">${flags}</div>` : ''}
+            ${ratingCmp ? `<div class="chain-ov-meta">${ratingCmp}</div>` : ''}`;
+          // Insert before the owner-fac-section
+          const facSection = content.querySelector('.owner-fac-section');
+          if (facSection) content.insertBefore(ov, facSection);
+        })
+        .catch(() => {});
+    }
+
+    // Make facility rows and View Profile buttons navigate to profile with owner context
+    const ownerName = document.getElementById('owner-modal-name').textContent;
+    function navToProfile(eid) {
+      const url = profileUrl(eid);
+      const u = new URL(url, window.location.origin);
+      u.searchParams.set('owner_id', aid);
+      u.searchParams.set('owner_name', ownerName);
+      window.location.href = u.toString();
+    }
+    content.querySelectorAll('.owner-fac-clickable').forEach(row => {
+      row.addEventListener('click', () => navToProfile(row.dataset.eid));
+    });
+    content.querySelectorAll('.owner-fac-profile-btn').forEach(btn => {
+      btn.addEventListener('click', e => { e.stopPropagation(); navToProfile(btn.dataset.eid); });
+    });
+  } catch (err) {
+    loading.style.display = 'none';
+    content.innerHTML = `<div class="empty-state"><p>${err.message}</p></div>`;
+  }
+}
+
+/* ── Seller Finder ──────────────────────────────────────────────────────── */
+let sellersInited = false;
+const sellerState = { page: 1, totalPages: 1 };
+
+function initSellersTab() {
+  if (sellersInited) return;
+  sellersInited = true;
+
+  // Populate state dropdown
+  const sel = document.getElementById('seller-state-filter');
+  if (sel && filterState.options.length > 1) {
+    Array.from(filterState.options).forEach(opt => {
+      if (opt.value) {
+        const o = document.createElement('option');
+        o.value = opt.value;
+        o.textContent = opt.textContent.replace(/\s*\(\d[\d,]*\)$/, '');
+        sel.appendChild(o);
+      }
+    });
+  }
+
+  document.getElementById('seller-search-btn').addEventListener('click', () => {
+    sellerState.page = 1;
+    loadSellers();
+  });
+  document.getElementById('seller-prev-btn').addEventListener('click', () => {
+    if (sellerState.page > 1) { sellerState.page--; loadSellers(false); }
+  });
+  document.getElementById('seller-next-btn').addEventListener('click', () => {
+    if (sellerState.page < sellerState.totalPages) { sellerState.page++; loadSellers(false); }
+  });
+}
+
+async function loadSellers(scrollTop = true) {
+  const list       = document.getElementById('seller-list');
+  const pagination = document.getElementById('seller-pagination');
+  const header     = document.getElementById('seller-results-header');
+
+  list.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Finding motivated sellers...</span></div>';
+  pagination.hidden = true;
+  if (header) header.hidden = true;
+
+  const p = new URLSearchParams({ page: sellerState.page });
+  const state     = document.getElementById('seller-state-filter').value;
+  const maxFac    = document.getElementById('seller-max-fac-filter').value;
+  const minYrs    = document.getElementById('seller-min-years-filter').value;
+  const minRating     = document.getElementById('seller-min-rating-filter').value;
+  const ownershipType = document.getElementById('seller-ownership-type-filter').value;
+  if (state)         p.set('state', state);
+  if (maxFac)        p.set('max_facilities', maxFac);
+  if (minYrs)        p.set('min_years', minYrs);
+  if (minRating)     p.set('min_rating', minRating);
+  if (ownershipType) p.set('ownership_type', ownershipType);
+
+  try {
+    const data = await api('/api/sellers?' + p);
+    sellerState.totalPages = data.total_pages;
+
+    if (header) {
+      header.hidden = false;
+      document.getElementById('seller-count').textContent =
+        `${data.total.toLocaleString()} potential seller${data.total !== 1 ? 's' : ''} found`;
+    }
+
+    if (!data.sellers || !data.sellers.length) {
+      list.innerHTML = '<div class="empty-state"><h3>No sellers found</h3><p>Try adjusting the filters.</p></div>';
+      return;
+    }
+
+    list.innerHTML = data.sellers.map(s => `
+      <div class="seller-card">
+        <div class="seller-main">
+          <div class="result-name">${esc(s.display_name)}</div>
+          <div class="result-meta">
+            <span>${[s.city, s.state].filter(Boolean).join(', ') || 'Unknown location'}</span>
+          </div>
+          <div class="rating-row">${s.avg_overall_rating != null ? starRating(Math.round(s.avg_overall_rating)) + '<span style="font-size:.75rem;color:var(--text-muted);margin-left:.25rem">avg (' + s.avg_overall_rating + ')</span>' : '<span class="stars-na">No rating data</span>'}${s.total_fines_sum > 0 ? '<span style="font-size:.72rem;color:#b91c1c;margin-left:.5rem">$' + Number(s.total_fines_sum).toLocaleString() + ' fines</span>' : ''}</div>
+          <div class="badge-row">${badgeRow(s.types || [])}</div>
+          <div class="seller-stats">
+            <div class="seller-stat"><span class="seller-stat-label">Facilities</span><span class="seller-stat-val">${s.facility_count}</span></div>
+            <div class="v-divider"></div>
+            <div class="seller-stat"><span class="seller-stat-label">Years Owned</span><span class="seller-stat-val">${s.years_owned ?? '—'}</span></div>
+            <div class="v-divider"></div>
+            <div class="seller-stat"><span class="seller-stat-label">Since</span><span class="seller-stat-val">${s.earliest_date || '—'}</span></div>
+          </div>
+        </div>
+        <button class="btn-view-profile" data-aid="${esc(s.associate_id_owner)}" data-name="${esc(s.display_name)}">
+          View Profile
+        </button>
+      </div>`).join('');
+
+    list.querySelectorAll('.btn-view-profile').forEach(btn =>
+      btn.addEventListener('click', () => openOwnerProfile(btn.dataset.aid, btn.dataset.name))
+    );
+
+    pagination.hidden = data.total_pages <= 1;
+    document.getElementById('seller-prev-btn').disabled = sellerState.page <= 1;
+    document.getElementById('seller-next-btn').disabled = sellerState.page >= sellerState.totalPages;
+    document.getElementById('seller-page-info').textContent = `Page ${sellerState.page} of ${sellerState.totalPages}`;
+    if (scrollTop) window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (err) {
+    list.innerHTML = `<div class="empty-state"><h3>Error loading sellers</h3><p>${err.message}</p></div>`;
+  }
+}
+
+(function restoreSearchFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const hasParams = params.has('page') || params.has('mode') || params.has('q') || params.has('state') || params.has('type') || params.has('tab');
+  if (!hasParams) return;
+
+  // ── Sellers tab restore ──────────────────────────────────────────────────
+  if (params.get('tab') === 'sellers') {
+    currentTab = 'sellers';
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => { p.classList.remove('active'); p.hidden = true; });
+    const sellersTab   = document.querySelector('.tab[data-tab="sellers"]');
+    const sellersPanel = document.getElementById('tab-sellers');
+    if (sellersTab)   sellersTab.classList.add('active');
+    if (sellersPanel) { sellersPanel.hidden = false; sellersPanel.classList.add('active'); }
+
+    const sellerState2        = params.get('seller_state')          || '';
+    const sellerMaxFac        = params.get('seller_max_fac')         || '5';
+    const sellerMinYears      = params.get('seller_min_years')       || '10';
+    const sellerMinRating     = params.get('seller_min_rating')      || '';
+    const sellerOwnershipType = params.get('seller_ownership_type')  || '';
+    const sellerPage          = parseInt(params.get('seller_page'))  || 1;
+    const restoreOwnerId      = params.get('owner_id')               || '';
+    const restoreOwnerName    = params.get('owner_name')             || '';
+
+    function tryRestoreSellers(attempts) {
+      // Wait for the search-tab state dropdown to be populated by the API call
+      if (filterState.options.length <= 1 && attempts > 0) {
+        setTimeout(() => tryRestoreSellers(attempts - 1), 200);
+        return;
+      }
+      initSellersTab(); // copies states from filterState into seller-state-filter
+      const stateEl         = document.getElementById('seller-state-filter');
+      const maxFacEl        = document.getElementById('seller-max-fac-filter');
+      const minYearsEl      = document.getElementById('seller-min-years-filter');
+      const minRatingEl     = document.getElementById('seller-min-rating-filter');
+      const ownershipTypeEl = document.getElementById('seller-ownership-type-filter');
+      if (stateEl)         stateEl.value         = sellerState2;
+      if (maxFacEl)        maxFacEl.value         = sellerMaxFac;
+      if (minYearsEl)      minYearsEl.value       = sellerMinYears;
+      if (minRatingEl)     minRatingEl.value      = sellerMinRating;
+      if (ownershipTypeEl) ownershipTypeEl.value  = sellerOwnershipType;
+      sellerState.page = sellerPage;
+      loadSellers(false).then(() => {
+        if (restoreOwnerId) openOwnerProfile(restoreOwnerId, restoreOwnerName);
+      });
+      history.replaceState(null, '', '/');
+    }
+    tryRestoreSellers(25);
+    return;
+  }
+  const q              = params.get('q')          || '';
+  const state          = params.get('state')       || '';
+  const type           = params.get('type')        || '';
+  const page           = parseInt(params.get('page')) || 1;
+  const mode           = params.get('mode')        || 'facilities';
+  const restoreOwnerId   = params.get('owner_id')   || '';
+  const restoreOwnerName = params.get('owner_name') || '';
+  // Restore mode buttons
+  searchMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  // Hide owner type filter if in owner mode
+  const filterType = document.getElementById('filter-type');
+  if (filterType) filterType.style.display = mode === 'owners' ? 'none' : '';
+  // Restore search input
+  const searchInput = document.getElementById('search-input');
+  const clearBtn = document.getElementById('clear-btn');
+  if (q && searchInput) {
+    searchInput.value = q;
+    if (clearBtn) clearBtn.hidden = false;
+  }
+  // Wait for state dropdown to populate, then restore and search
+  function tryRestore(attempts) {
+    const stateSelect = document.getElementById('filter-state');
+    const typeSelect  = document.getElementById('filter-type');
+    if (stateSelect.options.length <= 1 && attempts > 0) {
+      setTimeout(() => tryRestore(attempts - 1), 300);
+      return;
+    }
+    if (state && stateSelect) stateSelect.value = state;
+    if (type && typeSelect)   typeSelect.value  = type;
+    if (mode === 'owners') {
+      ownerState.page = page;
+      doOwnerSearch(false);
+    } else {
+      appState.page = page;
+      doSearch(false);
+    }
+    history.replaceState(null, '', '/');
+    if (restoreOwnerId) setTimeout(() => openOwnerProfile(restoreOwnerId, restoreOwnerName), 600);
+  }
+  tryRestore(15);
+})();
+  </script>
+</body>
+</html>

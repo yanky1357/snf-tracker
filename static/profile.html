@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Facility Profile — SNF Ownership Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif; background: #F2F2F7; color: #000; min-height: 100vh; }
+
+    /* ── Header ── */
+    .top-bar {
+      position: sticky; top: 0; z-index: 200;
+      background: rgba(255,255,255,.85);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .75rem 1.5rem; border-bottom: 0.5px solid rgba(60,60,67,.18);
+    }
+    .back-btn { display: flex; align-items: center; gap: .35rem; color: #007AFF; text-decoration: none; font-size: .9rem; font-weight: 500; transition: opacity .15s; }
+    .back-btn:hover { opacity: .7; }
+    .back-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .top-bar-brand { color: #000; font-size: .875rem; font-weight: 700; letter-spacing: .01em; }
+
+    /* ── Hero ── */
+    .hero { background: #1C1C1E; padding: 2rem 1.5rem 2.5rem; }
+    .hero-inner { max-width: 1100px; margin: 0 auto; }
+    .hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; }
+    .hero-left { flex: 1 1 0; min-width: 0; }
+    .hero-name { font-size: 1.75rem; font-weight: 800; color: #f1f5f9; line-height: 1.2; margin-bottom: .5rem; }
+    .hero-address { color: #94a3b8; font-size: .875rem; margin-bottom: .75rem; line-height: 1.65; }
+    .hero-tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
+
+    .grade-circle { flex-shrink: 0; width: 90px; height: 90px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 800; }
+    .grade-letter { font-size: 2.2rem; line-height: 1; }
+    .grade-label { font-size: .58rem; font-weight: 700; opacity: .75; letter-spacing: .1em; margin-top: 3px; }
+    .gA, .gAm { background: #14532d; color: #4ade80; border: 2px solid #22c55e; }
+    .gBp, .gB, .gBm { background: #1e3a5f; color: #60a5fa; border: 2px solid #3b82f6; }
+    .gCp, .gC, .gCm { background: #451a03; color: #fbbf24; border: 2px solid #f59e0b; }
+    .gD { background: #450a0a; color: #f87171; border: 2px solid #ef4444; }
+
+    .hero-photo { margin-top: 1.25rem; border-radius: 10px; overflow: hidden; height: 220px; background: #1e293b; position: relative; }
+    .hero-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .hero-photo-missing { display: flex; align-items: center; justify-content: center; height: 100%; color: #475569; font-size: .82rem; }
+    .hero-metrics { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.25rem; }
+    .mc { flex: 1 1 130px; background: rgba(255,255,255,.1); border: none; border-radius: 12px; padding: .75rem 1rem; }
+    .mc-label { font-size: .68rem; font-weight: 600; color: rgba(255,255,255,.5); letter-spacing: .06em; text-transform: uppercase; margin-bottom: .35rem; }
+    .mc-val { font-size: 1.1rem; font-weight: 700; color: #f1f5f9; }
+    .mc-val.red { color: #f87171; } .mc-val.amber { color: #fbbf24; } .mc-val.green { color: #4ade80; }
+    .mc-stars { display: flex; gap: 2px; }
+    .s-on { color: #f59e0b; font-size: .95rem; } .s-off { color: #475569; font-size: .95rem; }
+
+    /* ── Page body ── */
+    .page-body { max-width: 1100px; margin: 1.75rem auto; padding: 0 1.5rem 3rem; }
+    .two-col { display: grid; grid-template-columns: 3fr 2fr; gap: 1.5rem; align-items: start; }
+    @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* Cards */
+    .card { background: #fff; border: none; border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: .68rem; font-weight: 600; color: rgba(60,60,67,.6); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 1rem; padding-bottom: .6rem; border-bottom: 0.5px solid rgba(60,60,67,.12); }
+
+    /* Detail button */
+    .detail-btn { display: inline-flex; align-items: center; gap: .3rem; font-size: .78rem; font-weight: 600; color: #007AFF; background: none; border: none; cursor: pointer; padding: 0; margin-top: .85rem; }
+    .detail-btn:hover { opacity: .7; }
+
+    /* Signals condensed */
+    .sig-row { display: flex; align-items: flex-start; gap: .6rem; padding: .45rem 0; border-bottom: 1px solid #f8fafc; }
+    .sig-row:last-of-type { border-bottom: none; }
+    .sig-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+    .dot-red { background: #ef4444; } .dot-amber { background: #f59e0b; } .dot-green { background: #22c55e; }
+    .sig-text { font-size: .835rem; font-weight: 600; color: #1e293b; }
+    /* Full signal (in modal) */
+    .sig-item { display: flex; gap: .75rem; padding: .65rem 0; border-bottom: 1px solid #f8fafc; }
+    .sig-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .sig-bold { font-size: .875rem; font-weight: 600; color: #1e293b; }
+    .sig-sub { font-size: .775rem; color: #64748b; margin-top: 2px; line-height: 1.5; }
+
+    /* Ratings 2x2 grid */
+    .rat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+    .rat-cell { background: #F2F2F7; border-radius: 10px; padding: .6rem .75rem; }
+    .rat-lbl { font-size: .68rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .3rem; }
+    .rat-stars { display: flex; gap: 2px; }
+    .rs-on { color: #f59e0b; font-size: .85rem; } .rs-off { color: #d1d5db; font-size: .85rem; }
+
+    /* Rating bars (modal) */
+    .rb-row { margin-bottom: .9rem; } .rb-row:last-child { margin-bottom: 0; }
+    .rb-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .35rem; }
+    .rb-label { font-size: .8rem; font-weight: 600; color: #475569; }
+    .rb-badge { font-size: .75rem; font-weight: 700; padding: .15rem .5rem; border-radius: 20px; }
+    .rb-green { background: #dcfce7; color: #15803d; } .rb-amber { background: #fef3c7; color: #b45309; }
+    .rb-red { background: #fee2e2; color: #b91c1c; } .rb-gray { background: #f1f5f9; color: #94a3b8; }
+    .bar-track { height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; }
+    .bf-green { background: #22c55e; } .bf-amber { background: #f59e0b; } .bf-red { background: #ef4444; } .bf-gray { background: #cbd5e1; }
+
+    /* Fines condensed */
+    .fin-row { display: flex; justify-content: space-between; align-items: center; padding: .45rem 0; border-bottom: 1px solid #f8fafc; font-size: .85rem; }
+    .fin-row:last-child { border-bottom: none; }
+    .fin-lbl { color: #64748b; font-weight: 500; }
+    .fin-val { font-weight: 700; }
+    .fv-red { color: #dc2626; } .fv-amber { color: #d97706; } .fv-green { color: #16a34a; } .fv-norm { color: #1e293b; }
+    /* Penalty grid (modal) */
+    .pen-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .pen-item { background: #f8fafc; border-radius: 8px; padding: .75rem 1rem; }
+    .pen-lbl { font-size: .68rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .3rem; }
+    .pen-val { font-size: 1rem; font-weight: 700; }
+    .pv-red { color: #dc2626; } .pv-amber { color: #d97706; } .pv-green { color: #16a34a; } .pv-norm { color: #1e293b; }
+    .no-fines { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: .8rem 1rem; display: flex; align-items: center; gap: .6rem; color: #15803d; font-size: .875rem; font-weight: 600; }
+
+    /* Ownership condensed */
+    .own-list { display: flex; flex-direction: column; gap: .5rem; }
+    .own-card { border-left: 3px solid #c7d2fe; background: #fafafa; border-radius: 6px; padding: .65rem .85rem; }
+    .own-card.direct { border-left-color: #6366f1; } .own-card.indirect { border-left-color: #c7d2fe; } .own-card.ops { border-left-color: #34d399; }
+    .own-name { font-size: .875rem; font-weight: 700; color: #1e293b; }
+    .own-role { font-size: .75rem; color: #64748b; margin-top: 2px; }
+    .own-meta { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .4rem; align-items: center; }
+    .own-pct { font-size: .72rem; font-weight: 700; background: #eef2ff; color: #4338ca; border-radius: 4px; padding: .1rem .45rem; }
+    .own-state { font-size: .72rem; color: #94a3b8; }
+    .own-arr { text-align: center; color: #c7d2fe; font-size: .68rem; padding: .15rem 0; }
+    .own-more { font-size: .78rem; color: #94a3b8; font-style: italic; padding: .3rem 0; text-align: center; }
+
+    /* Badges */
+    .badge { display: inline-flex; align-items: center; font-size: .7rem; font-weight: 600; padding: .15rem .45rem; border-radius: 4px; }
+    .bLLC { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+    .bPE  { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
+    .bHold{ background:#fff7ed; color:#9a3412; border:1px solid #fed7aa; }
+    .bCorp{ background:#f5f3ff; color:#5b21b6; border:1px solid #ddd6fe; }
+    .bNP  { background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
+    .bREIT{ background:#fdf4ff; color:#6b21a8; border:1px solid #e9d5ff; }
+    .bFP  { background:#f8fafc; color:#475569; border:1px solid #e2e8f0; }
+    .bTrust{ background:#fff1f2; color:#9f1239; border:1px solid #fecdd3; }
+    .bChain{ background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; }
+    .bMgmt { background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; }
+    .bInvest{ background:#fefce8; color:#713f12; border:1px solid #fef08a; }
+
+    /* KV list */
+    .kv-list { display: flex; flex-direction: column; }
+    .kv-item { display: flex; justify-content: space-between; align-items: flex-start; gap: .75rem; padding: .5rem 0; border-bottom: 1px solid #f8fafc; }
+    .kv-item:last-child { border-bottom: none; }
+    .kv-k { font-size: .78rem; color: #94a3b8; font-weight: 500; flex-shrink: 0; }
+    .kv-v { font-size: .82rem; font-weight: 600; color: #1e293b; text-align: right; word-break: break-word; max-width: 60%; }
+
+    /* State comparison (modal) */
+    .sc-row { margin-bottom: 1.1rem; } .sc-row:last-child { margin-bottom: 0; }
+    .sc-label { font-size: .8rem; font-weight: 600; color: #475569; margin-bottom: .5rem; }
+    .sc-line { display: flex; align-items: center; gap: .6rem; margin-bottom: .3rem; }
+    .sc-lname { font-size: .72rem; color: #94a3b8; width: 80px; flex-shrink: 0; }
+    .sc-track { flex: 1; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
+    .sc-fill { height: 100%; border-radius: 3px; }
+    .scf-this { background: #6366f1; } .scf-avg { background: #cbd5e1; }
+    .sc-num { font-size: .72rem; font-weight: 700; color: #475569; width: 45px; text-align: right; flex-shrink: 0; }
+    .sc-pool { font-size: .72rem; color: #94a3b8; margin-top: .5rem; }
+
+    /* Chain report card */
+    .chain-header { margin-bottom: .85rem; }
+    .chain-title { font-size: .95rem; font-weight: 700; color: #1e293b; }
+    .chain-subtitle { font-size: .78rem; color: #64748b; margin-top: 2px; }
+    .chain-flags { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1rem; }
+    .chain-flag { display: flex; align-items: flex-start; gap: .5rem; font-size: .82rem; padding: .4rem .6rem; border-radius: 6px; }
+    .chain-flag.red { background: #fee2e2; color: #991b1b; } .chain-flag.amber { background: #fef3c7; color: #92400e; } .chain-flag.green { background: #f0fdf4; color: #166534; }
+    .chain-cmp-table { width: 100%; border-collapse: collapse; font-size: .8rem; margin-bottom: 1rem; }
+    .chain-cmp-table th { text-align: left; font-size: .68rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; padding: .3rem .4rem; border-bottom: 1px solid #f1f5f9; }
+    .chain-cmp-table td { padding: .45rem .4rem; border-bottom: 1px solid #f8fafc; vertical-align: middle; }
+    .chain-cmp-table tr:last-child td { border-bottom: none; }
+    .cmp-metric { font-weight: 500; color: #475569; } .cmp-chain { font-weight: 700; color: #1e293b; } .cmp-nat { color: #94a3b8; }
+    .cmp-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: .35rem; flex-shrink: 0; }
+    .cmp-green { background: #22c55e; } .cmp-red { background: #ef4444; } .cmp-neutral { background: #94a3b8; }
+    .chain-summary { font-size: .82rem; color: #475569; background: #f8fafc; border-radius: 8px; padding: .7rem .9rem; border-left: 3px solid #6366f1; line-height: 1.55; }
+
+    /* Loading / error */
+    .center-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 1rem; color: #64748b; }
+    .spinner { width: 36px; height: 36px; border: 3px solid #e2e8f0; border-top-color: #6366f1; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .err-icon { font-size: 2.5rem; } .err-msg { font-size: 1rem; color: #475569; text-align: center; max-width: 400px; }
+    .back-link { color: #6366f1; text-decoration: none; font-weight: 600; } .back-link:hover { text-decoration: underline; }
+
+    /* ── Modal system ── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,.4); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      display: none; align-items: center; justify-content: center; padding: 1rem;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: #fff; border-radius: 18px; width: 100%; max-width: 680px;
+      max-height: 85vh; display: flex; flex-direction: column;
+      box-shadow: 0 30px 80px rgba(0,0,0,.3); overflow: hidden;
+    }
+    .modal-hdr {
+      background: #fff; padding: 1.1rem 1.4rem;
+      border-bottom: 0.5px solid rgba(60,60,67,.15);
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+      flex-shrink: 0;
+    }
+    .modal-hdr-title { font-size: 1rem; font-weight: 700; color: #000; }
+    .modal-hdr-sub { font-size: .72rem; color: rgba(60,60,67,.6); margin-top: 2px; }
+    .modal-x { background: rgba(118,118,128,.15); border: none; color: rgba(60,60,67,.6); width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 1rem; flex-shrink: 0; transition: background .15s; display: flex; align-items: center; justify-content: center; }
+    .modal-x:hover { background: rgba(118,118,128,.25); color: #000; }
+    .modal-body { overflow-y: auto; padding: 1.4rem; flex: 1; }
+
+    /* medicare link */
+    .medicare-link { display: inline-flex; align-items: center; gap: .4rem; margin-top: 1rem; font-size: .8rem; font-weight: 600; color: #6366f1; text-decoration: none; }
+    .medicare-link:hover { text-decoration: underline; }
+
+    /* Modal section headers + summary */
+    .mod-section-hdr { font-size: .72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .07em; border-bottom: 1px solid #f1f5f9; padding-bottom: .4rem; margin-bottom: .6rem; }
+    .mod-summary { background: #f8fafc; border-left: 3px solid #6366f1; border-radius: 0 8px 8px 0; padding: .75rem 1rem; margin-top: 1rem; font-size: .82rem; color: #475569; line-height: 1.6; }
+    .mod-summary p { margin: 0 0 .4rem; } .mod-summary p:last-child { margin-bottom: 0; }
+
+    /* Financials card */
+    .fin-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .75rem; margin-bottom: 1rem; }
+    .fin-box { background: #f8fafc; border-radius: 8px; padding: .75rem .9rem; }
+    .fin-box-lbl { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; margin-bottom: .3rem; }
+    .fin-box-val { font-size: 1.05rem; font-weight: 800; color: #1e293b; }
+    .fin-box-val.green { color: #16a34a; } .fin-box-val.red { color: #dc2626; }
+    .fin-box-sub { font-size: .72rem; color: #94a3b8; margin-top: 2px; }
+    .fin-payer-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; margin-bottom: .5rem; }
+    .fin-payer-bar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; margin-bottom: .4rem; }
+    .fin-payer-seg { display: flex; align-items: center; justify-content: center; font-size: .68rem; font-weight: 700; color: #fff; transition: width .3s; }
+    .fin-payer-legend { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: .35rem; }
+    .fin-legend-item { display: flex; align-items: center; gap: .3rem; font-size: .75rem; color: #475569; }
+    .fin-legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+    .fin-summary { font-size: .82rem; color: #475569; background: #f8fafc; border-radius: 8px; padding: .7rem .9rem; border-left: 3px solid #6366f1; line-height: 1.55; margin-top: .85rem; }
+    @media (max-width: 500px) { .fin-grid { grid-template-columns: 1fr 1fr; } }
+
+    /* Inspection cycle cards */
+    .cycle-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: .85rem 1rem; }
+    .cycle-lbl { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; margin-bottom: .35rem; }
+    .cycle-date { font-size: .9rem; font-weight: 700; color: #1e293b; margin-bottom: .5rem; }
+    .cycle-stat { display: flex; justify-content: space-between; font-size: .8rem; padding: .2rem 0; border-bottom: 1px solid #f1f5f9; }
+    .cycle-stat:last-child { border-bottom: none; }
+    .cycle-stat span { color: #64748b; } .cycle-stat strong { color: #1e293b; }
+
+    /* Staffing modal rows */
+    .stf-row { display: flex; align-items: center; gap: .5rem; padding: .4rem 0; border-bottom: 1px solid #f8fafc; }
+    .stf-row:last-child { border-bottom: none; }
+    .stf-lbl { font-size: .78rem; color: #475569; font-weight: 500; width: 120px; flex-shrink: 0; }
+    .stf-bar-wrap { flex: 1; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
+    .stf-bar { height: 100%; border-radius: 3px; }
+    .stf-val { font-size: .78rem; font-weight: 700; color: #1e293b; width: 65px; text-align: right; flex-shrink: 0; }
+    .stf-avg { font-size: .68rem; color: #94a3b8; margin-top: 2px; }
+
+    /* Turnover grid */
+    .turnover-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-top: .5rem; }
+    .turnover-item { background: #f8fafc; border-radius: 8px; padding: .75rem; }
+    .tv-lbl { font-size: .68rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .3rem; }
+    .tv-val { font-size: 1.05rem; font-weight: 700; margin-bottom: .2rem; }
+    .tv-bench { font-size: .68rem; color: #94a3b8; }
+    .tv-green { color: #16a34a; } .tv-red { color: #dc2626; } .tv-norm { color: #1e293b; }
+
+    /* Occupancy gauge */
+    .occ-gauge-wrap { display: flex; flex-direction: column; align-items: center; padding: 1.25rem 0 .5rem; }
+    .occ-gauge-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #94a3b8; margin-bottom: .75rem; }
+    .occ-gauge-circle { width: 110px; height: 110px; border-radius: 50%; border: 6px solid; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: .5rem; }
+    .occ-gauge-pct { font-size: 1.6rem; font-weight: 800; line-height: 1; }
+    .occ-gauge-sub { font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin-top: 3px; opacity: .75; }
+    .occ-state-avg { font-size: .78rem; color: #64748b; }
+    .occ-table { width: 100%; border-collapse: collapse; font-size: .85rem; margin-top: .5rem; }
+    .occ-table td { padding: .5rem .25rem; border-bottom: 1px solid #f1f5f9; }
+    .occ-table tr:last-child td { border-bottom: none; }
+    .occ-table td:first-child { color: #64748b; }
+    .occ-table td:last-child { text-align: right; }
+    .payer-placeholder { font-size: .82rem; color: #94a3b8; font-style: italic; background: #f8fafc; border-radius: 6px; padding: .75rem 1rem; margin-top: .5rem; }
+
+    @media (max-width: 500px) {
+      .hero-name { font-size: 1.35rem; }
+      .pen-grid { grid-template-columns: 1fr; }
+      .rat-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top-bar">
+  <a href="/" class="back-btn" onclick="event.preventDefault();goBack()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+    </svg>
+    Back
+  </a>
+  <span class="top-bar-brand">SNF Ownership Tracker</span>
+</nav>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <div>
+        <div class="modal-hdr-sub" id="modal-sub"></div>
+        <div class="modal-hdr-title" id="modal-title"></div>
+      </div>
+      <button class="modal-x" onclick="closeModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<div id="loading-state" class="center-state">
+  <div class="spinner"></div>
+  <span style="font-size:.9rem">Loading facility profile…</span>
+</div>
+<div id="error-state" class="center-state" style="display:none">
+  <div class="err-icon">⚠️</div>
+  <div class="err-msg" id="error-msg">Could not load this facility.</div>
+  <a href="/" class="back-link" onclick="event.preventDefault();goBack()">← Back to search</a>
+</div>
+
+<div id="main-content" style="display:none">
+  <div class="hero">
+    <div class="hero-inner">
+      <div class="hero-top">
+        <div class="hero-left">
+          <div class="hero-name" id="hero-name"></div>
+          <div class="hero-address" id="hero-address"></div>
+          <div class="hero-tags" id="hero-tags"></div>
+        </div>
+        <div class="grade-circle" id="grade-circle">
+          <span class="grade-letter" id="grade-letter"></span>
+          <span class="grade-label">GRADE</span>
+        </div>
+      </div>
+      <div class="hero-photo" id="hero-photo"></div>
+      <div class="hero-metrics" id="hero-metrics"></div>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <div class="two-col">
+
+      <!-- LEFT COLUMN -->
+      <div>
+        <!-- Investor Signals (condensed) -->
+        <div class="card">
+          <div class="card-title">Key Investor Signals</div>
+          <div id="signals-condensed"></div>
+          <div style="display:flex;gap:1rem;flex-wrap:wrap">
+            <button class="detail-btn" onclick="openModal('Key Investor Signals', _modals.signals, 'Investor due diligence alerts')">View all signals →</button>
+            <button class="detail-btn" id="staffing-btn" onclick="openModal('Staffing Detail', _modals.staffing, 'Hours, turnover & workforce data')" style="display:none">Staffing Detail →</button>
+          </div>
+        </div>
+
+        <!-- Ratings Snapshot -->
+        <div class="card">
+          <div class="card-title">CMS Ratings Snapshot</div>
+          <div class="rat-grid" id="rat-grid"></div>
+          <button class="detail-btn" id="qm-btn" onclick="openModal('Quality Measures Detail', _modals.qualityMeasures, '17 clinical measures vs national benchmarks')" style="display:none">Quality Measures Detail →</button>
+        </div>
+
+        <!-- Fines condensed -->
+        <div class="card">
+          <div class="card-title">Fines &amp; Penalties</div>
+          <div id="fines-condensed"></div>
+          <button class="detail-btn" onclick="openModal('Fines &amp; Penalties Detail', _modals.fines, 'CMS enforcement history')">View Details →</button>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div>
+        <!-- Financials card -->
+        <div class="card" id="financials-card" style="display:none">
+          <div class="card-title">Financial Performance <span id="financials-year" style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.75rem;color:#94a3b8"></span></div>
+          <div id="financials-content"></div>
+        </div>
+
+        <!-- Ownership chain preview -->
+        <div class="card">
+          <div class="card-title">Ownership Chain</div>
+          <div class="own-list" id="own-preview"></div>
+          <button class="detail-btn" id="chain-full-btn" onclick="openModal('Full Ownership Chain', _modals.chain, 'All ownership & management records')" style="display:none">View Full Chain →</button>
+        </div>
+
+        <!-- Facility info -->
+        <div class="card">
+          <div class="card-title">Facility Details</div>
+          <div id="facility-details" class="kv-list"></div>
+          <div style="display:flex;gap:1rem;flex-wrap:wrap">
+            <button class="detail-btn" id="compare-btn" onclick="openModal('State &amp; Chain Comparison', _modals.comparison, 'How this facility benchmarks')" style="display:none">How does this compare? →</button>
+            <button class="detail-btn" id="occupancy-btn" onclick="openModal('Occupancy &amp; Census Detail', _modals.occupancy, 'Beds, census & utilization')" style="display:none">Occupancy Detail →</button>
+          </div>
+        </div>
+
+        <!-- Chain report card (if chain exists) -->
+        <div class="card" id="chain-card" style="display:none">
+          <div class="card-title">Chain Report Card</div>
+          <div id="chain-report-content"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Modal content store ──────────────────────────────────────────
+const _modals = { signals:'', fines:'', chain:'', qualityMeasures:'', comparison:'', staffing:'', occupancy:'' };
+let _facilityName = '';
+
+function goBack(){
+  const p = new URLSearchParams(window.location.search);
+  const r = new URLSearchParams();
+  ['q','state','type','page','mode','tab',
+   'seller_state','seller_max_fac','seller_min_years','seller_min_rating','seller_ownership_type','seller_page',
+   'owner_id','owner_name'
+  ].forEach(k => { const v = p.get(k); if(v) r.set(k, v); });
+  if(r.toString()) window.location.href = '/?' + r.toString();
+  else window.history.back();
+}
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── Modal system ──────────────────────────────────────────────────
+function openModal(title, content, sub) {
+  document.getElementById('modal-title').innerHTML = title;
+  document.getElementById('modal-sub').textContent = sub || _facilityName;
+  document.getElementById('modal-body').innerHTML = content || '<p style="color:#94a3b8">Loading…</p>';
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function handleOverlayClick(e) { if(e.target === document.getElementById('modal-overlay')) closeModal(); }
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModal(); });
+
+// ── Helpers ───────────────────────────────────────────────────────
+const BADGE_MAP = {
+  'LLC':'bLLC','Private Equity':'bPE','Holding Co.':'bHold',
+  'Corporation':'bCorp','Non-Profit':'bNP','REIT':'bREIT',
+  'For-Profit':'bFP','Trust/Trustee':'bTrust','Chain Office':'bChain',
+  'Mgmt. Co.':'bMgmt','Investment Firm':'bInvest'
+};
+function badgesHtml(types){ return (types||[]).map(t=>`<span class="badge ${BADGE_MAP[t]||'bFP'}">${esc(t)}</span>`).join(''); }
+
+function starsHtml(n, onCls='s-on', offCls='s-off'){
+  if(n==null) return '<span style="color:#475569;font-size:.8rem">N/A</span>';
+  const full=Math.round(n);
+  return '<span class="mc-stars">'+Array.from({length:5},(_,i)=>`<span class="${i<full?onCls:offCls}">★</span>`).join('')+'</span>';
+}
+
+function gradeClass(g){ return {'A':'gA','A-':'gAm','B+':'gBp','B':'gB','B-':'gBm','C+':'gCp','C':'gC','C-':'gCm','D':'gD'}[g]||'gD'; }
+function barColors(val){ if(val==null) return ['bf-gray','rb-gray']; const p=val/5; if(p>=0.7) return ['bf-green','rb-green']; if(p>=0.5) return ['bf-amber','rb-amber']; return ['bf-red','rb-red']; }
+function fmt$(n){ return n>0?'$'+n.toLocaleString():'$0'; }
+
+// ── Load ──────────────────────────────────────────────────────────
+async function loadProfile(){
+  const id=new URLSearchParams(window.location.search).get('id');
+  if(!id){ showError('No facility ID in URL.'); return; }
+  try{
+    const res=await fetch('/api/profile/'+encodeURIComponent(id));
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    if(data.error) throw new Error(data.error);
+    render(data);
+    // Fire QM fetch in parallel — stores result into _modals when done
+    loadQualityMeasures(id);
+  }catch(e){ showError(e.message); }
+}
+
+function showError(msg){
+  document.getElementById('loading-state').style.display='none';
+  document.getElementById('error-state').style.display='flex';
+  document.getElementById('error-msg').textContent=msg;
+}
+
+function render(data){
+  const f=data.facility;
+  const owners=data.owners||[];
+  const grade=data.investor_grade;
+  const signals=data.signals||[];
+  const sa=data.state_avgs||{};
+
+  _facilityName = f.provider_name||f.organization_name||'Facility';
+  document.title = _facilityName + ' — SNF Tracker';
+
+  // Hero name
+  document.getElementById('hero-name').textContent = _facilityName;
+
+  // Address block
+  const addrParts=[f.address,f.city,f.facility_state,f.zip].filter(Boolean).join(', ');
+  const subParts=[f.ccn?'CCN: '+f.ccn:null, f.num_beds?f.num_beds+' beds':null].filter(Boolean).join(' · ');
+  document.getElementById('hero-address').innerHTML=
+    esc(addrParts)+(subParts?'<br><span style="font-size:.8rem;opacity:.8">'+esc(subParts)+'</span>':'');
+
+  // Street View photo
+  const GMAPS_KEY = 'AIzaSyCwAZICC_E9GwQbf2SfZtcXFRegOWrzoa8';
+  const photoEl = document.getElementById('hero-photo');
+  const addrForPhoto = [f.address, f.city, f.facility_state].filter(Boolean).join(', ');
+  if (addrForPhoto && GMAPS_KEY) {
+    const svUrl = `https://maps.googleapis.com/maps/api/streetview?size=1100x220&location=${encodeURIComponent(addrForPhoto)}&fov=90&pitch=5&key=${GMAPS_KEY}`;
+    const img = document.createElement('img');
+    img.alt = 'Street view of ' + _facilityName;
+    img.src = svUrl;
+    img.onerror = () => { photoEl.innerHTML = '<div class="hero-photo-missing">No street view available for this location</div>'; };
+    photoEl.appendChild(img);
+  } else {
+    photoEl.innerHTML = '<div class="hero-photo-missing">Address unavailable</div>';
+  }
+
+  // Tags
+  const types=(f.owner_types||'').split(',').map(s=>s.trim()).filter(Boolean);
+  if(data.has_pe && !types.includes('Private Equity')) types.unshift('Private Equity');
+  document.getElementById('hero-tags').innerHTML=badgesHtml(types.slice(0,6));
+
+  // Grade circle
+  const gc=document.getElementById('grade-circle');
+  gc.className='grade-circle '+gradeClass(grade);
+  document.getElementById('grade-letter').textContent=grade;
+
+  // Hero metrics
+  const fines=f.total_fines||0;
+  const finesColor=fines>50000?'red':fines>10000?'amber':'green';
+  document.getElementById('hero-metrics').innerHTML=`
+    <div class="mc"><div class="mc-label">CMS Overall</div><div class="mc-val">${starsHtml(f.overall_rating)}</div></div>
+    <div class="mc"><div class="mc-label">Total Fines</div><div class="mc-val ${finesColor}">${fmt$(fines)}</div></div>
+    <div class="mc"><div class="mc-label">Licensed Beds</div><div class="mc-val">${f.num_beds||'N/A'}</div></div>
+    <div class="mc"><div class="mc-label">Owner Since</div><div class="mc-val">${data.owner_since||'N/A'}</div></div>
+    <div class="mc"><div class="mc-label">Ownership Records</div><div class="mc-val">${data.owner_count}</div></div>
+  `;
+
+  // ── Signals condensed (dots + text only, max 4) ──────────────────
+  const MAX_SIG = 4;
+  document.getElementById('signals-condensed').innerHTML=
+    signals.slice(0, MAX_SIG).map(s=>`
+      <div class="sig-row">
+        <div class="sig-dot dot-${esc(s.level)}"></div>
+        <span class="sig-text">${esc(s.text)}</span>
+      </div>`).join('');
+
+  // Build full signals modal content
+  const _staffingLinkHtml = f.rn_hours_per_resident_day != null
+    ? '<div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid #f1f5f9"><button class="detail-btn" onclick="closeModal();setTimeout(()=>openModal(\'Staffing Detail\',_modals.staffing),150)">See Staffing Detail →</button></div>'
+    : '';
+  _modals.signals = signals.map(s=>`
+    <div class="sig-item">
+      <div class="sig-dot dot-${esc(s.level)}" style="width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:5px;background:${s.level==='red'?'#ef4444':s.level==='amber'?'#f59e0b':'#22c55e'}"></div>
+      <div><div class="sig-bold">${esc(s.text)}</div><div class="sig-sub">${esc(s.sub)}</div></div>
+    </div>`).join('') + _staffingLinkHtml;
+
+  // ── Ratings snapshot 2×2 ──────────────────────────────────────────
+  const ratDefs=[
+    {label:'Overall',val:f.overall_rating},{label:'Health',val:f.health_rating},
+    {label:'Staffing',val:f.staffing_rating},{label:'Quality Measures',val:f.qm_rating},
+  ];
+  document.getElementById('rat-grid').innerHTML=ratDefs.map(r=>`
+    <div class="rat-cell">
+      <div class="rat-lbl">${esc(r.label)}</div>
+      <div class="rat-stars">${Array.from({length:5},(_,i)=>`<span class="${i<Math.round(r.val||0)?'rs-on':'rs-off'}">★</span>`).join('')}</div>
+    </div>`).join('');
+
+  // ── Fines condensed (3 rows) ──────────────────────────────────────
+  const np=f.num_penalties||0, nf=f.num_fines||0, sf=f.special_focus||'', ai=f.abuse_icon||'';
+  const fCls=fines>50000?'fv-red':fines>10000?'fv-amber':'fv-green';
+  const pCls=np>10?'fv-red':np>5?'fv-amber':'fv-norm';
+  document.getElementById('fines-condensed').innerHTML=`
+    <div class="fin-row"><span class="fin-lbl">Total Fines</span><span class="fin-val ${fCls}">${fmt$(fines)}</span></div>
+    <div class="fin-row"><span class="fin-lbl">Penalties</span><span class="fin-val ${pCls}">${np}</span></div>
+    <div class="fin-row"><span class="fin-lbl">Special Focus</span><span class="fin-val ${sf?'fv-red':'fv-green'}">${sf||'None'}</span></div>`;
+
+  // Build fines modal content (enhanced)
+  const pd=f.num_payment_denials||0;
+  const ic=f.infection_control_citations||0;
+  const ownerChange=f.ownership_change_last_12mo==='Y'||f.ownership_change_last_12mo===1;
+  if(!fines&&!np&&!sf&&ai!=='Y'&&!pd&&!ownerChange){
+    _modals.fines='<div class="no-fines">✓ No fines or penalties on record</div>';
+  } else {
+    let fHtml=`<div class="pen-grid">
+      <div class="pen-item"><div class="pen-lbl">Total Fines</div><div class="pen-val ${fines>50000?'pv-red':fines>10000?'pv-amber':'pv-norm'}">${fmt$(fines)}</div></div>
+      <div class="pen-item"><div class="pen-lbl">Fines Filed</div><div class="pen-val pv-norm">${nf}</div></div>
+      <div class="pen-item"><div class="pen-lbl">Penalties</div><div class="pen-val ${np>10?'pv-red':np>5?'pv-amber':'pv-norm'}">${np}</div></div>
+      <div class="pen-item"><div class="pen-lbl">Payment Denials</div><div class="pen-val ${pd>0?'pv-red':'pv-norm'}">${pd}</div></div>
+      <div class="pen-item"><div class="pen-lbl">Infection Control</div><div class="pen-val ${ic>2?'pv-red':ic>0?'pv-amber':'pv-norm'}">${ic} citation${ic!==1?'s':''}</div></div>
+      <div class="pen-item"><div class="pen-lbl">Special Focus</div><div class="pen-val ${sf?'pv-red':'pv-green'}">${esc(sf)||'None'}</div></div>
+      ${ai==='Y'?'<div class="pen-item"><div class="pen-lbl">Abuse Flag</div><div class="pen-val pv-red">⚠ Active</div></div>':''}
+      ${ownerChange?'<div class="pen-item" style="grid-column:1/-1"><div class="pen-lbl">Ownership Change</div><div class="pen-val pv-amber">⚠ Changed in last 12 months</div></div>':''}
+    </div>`;
+    const c1d=f.cycle1_health_date, c2d=f.cycle2_health_date;
+    if(c1d||c2d){
+      fHtml+=`<div class="mod-section-hdr" style="margin-top:1.25rem">Inspection History</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:.6rem">`;
+      if(c1d) fHtml+=`<div class="cycle-card">
+        <div class="cycle-lbl">Most Recent</div>
+        <div class="cycle-date">${esc(c1d)}</div>
+        ${f.cycle1_deficiencies!=null?`<div class="cycle-stat"><span>Deficiencies</span><strong>${f.cycle1_deficiencies}</strong></div>`:''}
+        ${f.cycle1_standard_deficiencies!=null?`<div class="cycle-stat"><span>Standard</span><strong>${f.cycle1_standard_deficiencies}</strong></div>`:''}
+        ${f.cycle1_complaint_deficiencies!=null?`<div class="cycle-stat"><span>Complaint</span><strong>${f.cycle1_complaint_deficiencies}</strong></div>`:''}
+        ${f.cycle1_health_score!=null?`<div class="cycle-stat"><span>Health Score</span><strong>${f.cycle1_health_score}</strong></div>`:''}
+      </div>`;
+      if(c2d) fHtml+=`<div class="cycle-card">
+        <div class="cycle-lbl">Previous</div>
+        <div class="cycle-date">${esc(c2d)}</div>
+        ${f.cycle2_deficiencies!=null?`<div class="cycle-stat"><span>Deficiencies</span><strong>${f.cycle2_deficiencies}</strong></div>`:''}
+        ${f.cycle2_health_score!=null?`<div class="cycle-stat"><span>Health Score</span><strong>${f.cycle2_health_score}</strong></div>`:''}
+      </div>`;
+      fHtml+=`</div>`;
+    }
+    const fParts=[];
+    if(fines>50000) fParts.push('Significant fines paid — above typical for this state. Review inspection reports carefully.');
+    else if(fines>10000) fParts.push('Moderate fines on record — worth reviewing before proceeding.');
+    if(ai==='Y') fParts.push('<strong>CMS Abuse Icon is active</strong> — indicates a substantiated abuse complaint on record.');
+    if(sf) fParts.push(`Facility is on <strong>Special Focus</strong> status — CMS flags it as persistently poor-performing.`);
+    if(pd>0) fParts.push(`${pd} Medicare payment denial${pd!==1?'s':''} on record — a serious compliance signal.`);
+    if(ownerChange) fParts.push('Ownership changed in the past 12 months — verify operational continuity and staff retention.');
+    if(fParts.length) fHtml+=`<div class="mod-summary">${fParts.map(p=>`<p>${p}</p>`).join('')}</div>`;
+    fHtml+=`<a href="https://www.medicare.gov/care-compare/" target="_blank" rel="noopener" class="medicare-link">↗ View full inspection reports on Medicare.gov</a>`;
+    _modals.fines=fHtml;
+  }
+
+  // ── Ownership preview (max 3) + full chain modal ──────────────────
+  const OPS=new Set([25,40,41,42,43,44,63,72]);
+  const ownOwners=owners.filter(o=>!OPS.has(parseInt(o.role_code_owner||'0')));
+  const preview=ownOwners.slice(0,3);
+  const remaining=ownOwners.length-3;
+
+  function ownerCardHtml(o, i, showArr){
+    const isDirect=(o.role_text_owner||'').toLowerCase().includes('direct');
+    const pct=o.percentage_ownership;
+    return `${showArr&&i>0?'<div class="own-arr">↑ owned by</div>':''}
+      <div class="own-card ${isDirect?'direct':'indirect'}">
+        <div class="own-name">${esc(o.display_name)}</div>
+        <div class="own-role">${esc(o.role_text_owner||'')}</div>
+        <div class="own-meta">
+          ${pct?`<span class="own-pct">${esc(pct)}%</span>`:''}
+          ${o.state_owner?`<span class="own-state">${esc(o.state_owner)}</span>`:''}
+          ${badgesHtml(o.types)}
+        </div>
+      </div>`;
+  }
+
+  if(!ownOwners.length){
+    document.getElementById('own-preview').innerHTML='<p style="color:#94a3b8;font-size:.8rem">No ownership records found.</p>';
+  } else {
+    document.getElementById('own-preview').innerHTML=
+      preview.map((o,i)=>ownerCardHtml(o,i,true)).join('') +
+      (remaining>0?`<div class="own-more">+ ${remaining} more record${remaining!==1?'s':''}</div>`:'');
+    if(ownOwners.length>3) document.getElementById('chain-full-btn').style.display='inline-flex';
+  }
+
+  // Build full chain modal content
+  _modals.chain = ownOwners.length
+    ? ownOwners.slice(0,10).map((o,i)=>ownerCardHtml(o,i,true)).join('')
+    : '<p style="color:#94a3b8">No ownership records found.</p>';
+
+  // ── Facility details KV ───────────────────────────────────────────
+  document.getElementById('facility-details').innerHTML=[
+    ['Legal Name',    f.organization_name],
+    ['Provider Name', f.provider_name],
+    ['CCN',           f.ccn],
+    ['Enrollment ID', f.enrollment_id],
+    ['Ownership Type',f.ownership_type],
+    ['Chain',         f.chain_name||'Independent'],
+    ['Licensed Beds', f.num_beds],
+    ['State',         f.facility_state],
+  ].filter(([,v])=>v!=null&&v!=='').map(([k,v])=>
+    `<div class="kv-item"><span class="kv-k">${esc(k)}</span><span class="kv-v">${esc(v)}</span></div>`
+  ).join('');
+
+  // ── State comparison modal content ────────────────────────────────
+  if(sa.count){
+    const st=f.facility_state||'State';
+    const thisO=f.overall_rating, avgO=sa.avg_overall;
+    const thisF=fines, avgF=sa.avg_total_fines||0;
+    const maxF=Math.max(thisF,avgF,1);
+    _modals.comparison=`
+      <div class="sc-row">
+        <div class="sc-label">Overall CMS Rating</div>
+        <div class="sc-line"><span class="sc-lname">This facility</span>
+          <div class="sc-track"><div class="sc-fill scf-this" style="width:${thisO!=null?(thisO/5*100).toFixed(1):0}%"></div></div>
+          <span class="sc-num">${thisO!=null?thisO+' ★':'N/A'}</span></div>
+        <div class="sc-line"><span class="sc-lname">${esc(st)} avg</span>
+          <div class="sc-track"><div class="sc-fill scf-avg" style="width:${avgO!=null?(avgO/5*100).toFixed(1):0}%"></div></div>
+          <span class="sc-num">${avgO!=null?parseFloat(avgO).toFixed(1)+' ★':'N/A'}</span></div>
+      </div>
+      <div class="sc-row">
+        <div class="sc-label">Total Fines</div>
+        <div class="sc-line"><span class="sc-lname">This facility</span>
+          <div class="sc-track"><div class="sc-fill scf-this" style="width:${(thisF/maxF*100).toFixed(1)}%"></div></div>
+          <span class="sc-num">$${(thisF/1000).toFixed(0)}k</span></div>
+        <div class="sc-line"><span class="sc-lname">${esc(st)} avg</span>
+          <div class="sc-track"><div class="sc-fill scf-avg" style="width:${(avgF/maxF*100).toFixed(1)}%"></div></div>
+          <span class="sc-num">$${(avgF/1000).toFixed(0)}k</span></div>
+        <div class="sc-pool">${sa.count.toLocaleString()} facilities in ${esc(st)} comparison pool</div>
+      </div>`;
+    document.getElementById('compare-btn').style.display='inline-flex';
+  }
+
+  // ── Staffing modal content ─────────────────────────────────────────
+  if(f.rn_hours_per_resident_day != null || f.total_nurse_hours_per_day != null){
+    _modals.staffing = buildStaffingModal(f, sa);
+    document.getElementById('staffing-btn').style.display='inline-flex';
+  }
+
+  // ── Occupancy modal content ────────────────────────────────────────
+  if(f.avg_daily_census != null){
+    _modals.occupancy = buildOccupancyModal(f, sa);
+    document.getElementById('occupancy-btn').style.display='inline-flex';
+  }
+
+  // ── Financials card ────────────────────────────────────────────────
+  loadFinancials(f.enrollment_id);
+
+  // ── Chain report card ──────────────────────────────────────────────
+  if(f.chain_id && f.chain_name) loadChainReport(f.chain_id, f.chain_name);
+
+  // Show page
+  document.getElementById('loading-state').style.display='none';
+  document.getElementById('main-content').style.display='block';
+}
+
+// ── Financials ─────────────────────────────────────────────────────
+async function loadFinancials(enrollmentId) {
+  try {
+    const res = await fetch('/api/financials/' + encodeURIComponent(enrollmentId));
+    if (!res.ok) return;
+    const d = await res.json();
+    if (!d.available) return;
+    renderFinancials(d);
+  } catch(e) {}
+}
+
+function renderFinancials(d) {
+  const card = document.getElementById('financials-card');
+  const content = document.getElementById('financials-content');
+  const yearEl = document.getElementById('financials-year');
+  if (d.fiscal_year_end) yearEl.textContent = '(FY ending ' + d.fiscal_year_end + ')';
+
+  function fmtM(v) {
+    if (v == null) return 'N/A';
+    const abs = Math.abs(v);
+    if (abs >= 1e6) return (v < 0 ? '-' : '') + '$' + (abs/1e6).toFixed(1) + 'M';
+    return (v < 0 ? '-' : '') + '$' + Math.round(abs).toLocaleString();
+  }
+  function fmtPct(v) { return v != null ? v.toFixed(1) + '%' : 'N/A'; }
+
+  const rev = d.net_patient_revenue;
+  const exp = d.operating_expense;
+  const opInc = d.operating_income;
+  const incCls = opInc == null ? '' : opInc >= 0 ? 'green' : 'red';
+  const incLabel = opInc == null ? 'N/A' : (opInc >= 0 ? '▲ ' : '▼ ') + fmtM(opInc);
+
+  let html = `<div class="fin-grid">
+    <div class="fin-box">
+      <div class="fin-box-lbl">Total Revenue</div>
+      <div class="fin-box-val">${fmtM(rev)}</div>
+      <div class="fin-box-sub">Money collected from patients</div>
+    </div>
+    <div class="fin-box">
+      <div class="fin-box-lbl">Total Expenses</div>
+      <div class="fin-box-val">${fmtM(exp)}</div>
+      <div class="fin-box-sub">Cost to run the facility</div>
+    </div>
+    <div class="fin-box">
+      <div class="fin-box-lbl">Profit / Loss</div>
+      <div class="fin-box-val ${incCls}">${incLabel}</div>
+      <div class="fin-box-sub">${d.profit_margin != null ? fmtPct(d.profit_margin) + ' margin' : ''}</div>
+    </div>
+  </div>`;
+
+  // Payer mix bar
+  const med = d.medicare_pct || 0;
+  const mcd = d.medicaid_pct || 0;
+  const oth = d.other_pct   || 0;
+  if (d.total_days) {
+    html += `<div class="fin-payer-label">Where Patients Come From</div>
+    <div class="fin-payer-bar">
+      ${med > 3 ? `<div class="fin-payer-seg" style="width:${med}%;background:#6366f1">${med > 8 ? med+'%' : ''}</div>` : ''}
+      ${mcd > 3 ? `<div class="fin-payer-seg" style="width:${mcd}%;background:#0ea5e9">${mcd > 8 ? mcd+'%' : ''}</div>` : ''}
+      ${oth > 3 ? `<div class="fin-payer-seg" style="width:${oth}%;background:#10b981">${oth > 8 ? oth+'%' : ''}</div>` : ''}
+    </div>
+    <div class="fin-payer-legend">
+      <div class="fin-legend-item"><div class="fin-legend-dot" style="background:#6366f1"></div>Medicare ${fmtPct(d.medicare_pct)} — government pays for short-term rehab stays</div>
+      <div class="fin-legend-item"><div class="fin-legend-dot" style="background:#0ea5e9"></div>Medicaid ${fmtPct(d.medicaid_pct)} — government pays for long-term low-income residents</div>
+      <div class="fin-legend-item"><div class="fin-legend-dot" style="background:#10b981"></div>Private Pay ${fmtPct(d.other_pct)} — residents pay out of pocket or via insurance</div>
+    </div>`;
+  }
+
+  // Plain-English summary
+  const payrollPct = d.payroll_pct;
+  let summary = '';
+  if (opInc != null) {
+    summary += opInc >= 0
+      ? `This facility made a <strong>${fmtPct(d.profit_margin)} operating profit</strong> — it brought in more money than it spent. `
+      : `This facility ran at an <strong>operating loss of ${fmtM(Math.abs(opInc))}</strong> — expenses exceeded revenue. `;
+  }
+  if (payrollPct != null) {
+    summary += `Staff payroll was <strong>${fmtPct(payrollPct)} of revenue</strong> — ${payrollPct > 60 ? 'high, which is common in well-staffed facilities' : payrollPct > 45 ? 'typical for the industry' : 'lower than average'}. `;
+  }
+  if (d.state_avg_revenue && rev) {
+    const vs = rev > d.state_avg_revenue ? 'above' : 'below';
+    summary += `Revenue is <strong>${vs} the state average</strong> of ${fmtM(d.state_avg_revenue)}.`;
+  }
+  if (summary) html += `<div class="fin-summary">${summary}</div>`;
+
+  content.innerHTML = html;
+  card.style.display = 'block';
+}
+
+// ── Chain report ───────────────────────────────────────────────────
+async function loadChainReport(chainId, chainName){
+  if(!chainId) return;
+  try{
+    const res=await fetch('/api/chain-performance/'+encodeURIComponent(chainId));
+    if(!res.ok) return;
+    const data=await res.json();
+    if(data.error) return;
+    renderChainReport(data.chain, data.national);
+  }catch(e){}
+}
+
+function renderChainReport(c, nat){
+  const card=document.getElementById('chain-card');
+  const content=document.getElementById('chain-report-content');
+  const stateTxt=c.num_states?` · ${c.num_states} state${c.num_states!==1?'s':''}`:' ';
+  const facTxt=c.num_facilities?`${c.num_facilities.toLocaleString()} facilities`:'';
+  let html=`<div class="chain-header"><div class="chain-title">${esc(c.chain_name||'')}</div><div class="chain-subtitle">${facTxt}${stateTxt}</div></div>`;
+  let flags='';
+  if(c.num_sff>0) flags+=`<div class="chain-flag red">⚠ ${c.num_sff} Special Focus Facilit${c.num_sff===1?'y':'ies'} in this chain</div>`;
+  if(c.pct_abuse_icon>15) flags+=`<div class="chain-flag red">⚠ ${c.pct_abuse_icon}% of chain facilities have abuse icons</div>`;
+  else if(c.pct_abuse_icon>5) flags+=`<div class="chain-flag amber">⚠ ${c.pct_abuse_icon}% of chain facilities have abuse icons</div>`;
+  if(c.avg_nursing_turnover>60) flags+=`<div class="chain-flag red">⚠ High staff turnover across chain (${c.avg_nursing_turnover}%)</div>`;
+  else if(c.avg_nursing_turnover>45) flags+=`<div class="chain-flag amber">⚠ Elevated staff turnover across chain (${c.avg_nursing_turnover}%)</div>`;
+  if(flags) html+=`<div class="chain-flags">${flags}</div>`;
+  function cmpRow(label,chainVal,natVal,higherIsBetter,fmt){
+    if(chainVal==null) return '';
+    const fmtd=v=>v==null?'N/A':fmt(v);
+    const better=higherIsBetter?chainVal>=natVal:chainVal<=natVal;
+    const dotCls=natVal==null?'cmp-neutral':better?'cmp-green':'cmp-red';
+    return `<tr><td class="cmp-metric">${esc(label)}</td><td class="cmp-chain">${fmtd(chainVal)}<span class="cmp-dot ${dotCls}"></span></td><td class="cmp-nat">${fmtd(natVal)}</td></tr>`;
+  }
+  const star=v=>v!=null?parseFloat(v).toFixed(1)+' ★':'N/A';
+  const pct=v=>v!=null?parseFloat(v).toFixed(1)+'%':'N/A';
+  const dol=v=>v!=null?'$'+Math.round(v).toLocaleString():'N/A';
+  const dec1=v=>v!=null?parseFloat(v).toFixed(2):'N/A';
+  const nn=nat||{};
+  html+=`<table class="chain-cmp-table"><thead><tr><th>Metric</th><th>This Chain</th><th>National</th></tr></thead><tbody>
+    ${cmpRow('Avg Overall Rating',c.avg_overall_rating,nn.avg_overall_rating,true,star)}
+    ${cmpRow('Avg Staffing Rating',c.avg_staffing_rating,nn.avg_staffing_rating,true,star)}
+    ${cmpRow('RN Hours / Resident Day',c.avg_rn_hours,nn.avg_rn_hours,true,dec1)}
+    ${cmpRow('Nursing Staff Turnover',c.avg_nursing_turnover,nn.avg_nursing_turnover,false,pct)}
+    ${cmpRow('Avg Fines / Facility',c.avg_fines,nn.avg_fines,false,dol)}
+    ${cmpRow('Re-hospitalization',c.avg_rehospitalization,nn.avg_rehospitalization,false,pct)}
+  </tbody></table>`;
+  if(c.avg_overall_rating!=null&&nn.avg_overall_rating!=null){
+    const diff=parseFloat(c.avg_overall_rating)-parseFloat(nn.avg_overall_rating);
+    const summary=diff>=0?'This chain performs above the national average overall.':diff<-0.5?'This chain performs below the national average — investigate before making an offer.':'This chain performs close to the national average overall.';
+    html+=`<div class="chain-summary">${esc(summary)}</div>`;
+  }
+  content.innerHTML=html;
+  card.style.display='block';
+}
+
+// ── Staffing detail modal builder ────────────────────────────────────
+function buildStaffingModal(f, sa){
+  const rn=f.rn_hours_per_resident_day, lpn=f.lpn_hours_per_resident_day;
+  const cna=f.cna_hours_per_resident_day, total=f.total_nurse_hours_per_day;
+  const wkndNurse=f.weekend_nurse_hours, wkndRn=f.weekend_rn_hours;
+  const nt=f.nursing_turnover, rt=f.rn_turnover, at=f.admin_turnover;
+  const avgRn=sa.avg_rn_hours, avgNurse=sa.avg_nurse_hours, avgTurnover=sa.avg_nursing_turnover;
+
+  function hrsRow(label, val, avg){
+    if(val==null) return '';
+    const max=Math.max(parseFloat(val), avg?parseFloat(avg):0, 4);
+    const better=avg==null?null:parseFloat(val)>=parseFloat(avg);
+    const barColor=better===false?'#f59e0b':better===true?'#6366f1':'#94a3b8';
+    const arrow=better===true?'<span style="color:#22c55e;font-size:.65rem">▲</span>':better===false?'<span style="color:#ef4444;font-size:.65rem">▼</span>':'';
+    return `<div class="stf-row">
+      <span class="stf-lbl">${esc(label)}</span>
+      <div style="flex:1">
+        <div class="stf-bar-wrap"><div class="stf-bar" style="width:${(parseFloat(val)/max*100).toFixed(1)}%;background:${barColor}"></div></div>
+        ${avg!=null?`<div class="stf-avg">State avg: ${parseFloat(avg).toFixed(2)} hrs/day</div>`:''}
+      </div>
+      <span class="stf-val">${parseFloat(val).toFixed(2)} ${arrow}</span>
+    </div>`;
+  }
+
+  let html=`<div class="mod-section-hdr">Hours Per Resident Per Day</div>`;
+  html+=hrsRow('RN Hours', rn, avgRn);
+  html+=hrsRow('LPN Hours', lpn, null);
+  html+=hrsRow('CNA Hours', cna, null);
+  html+=hrsRow('Total Nurse Hours', total, avgNurse);
+
+  if(wkndNurse!=null||wkndRn!=null){
+    html+=`<div class="mod-section-hdr" style="margin-top:1rem">Weekend Staffing</div>`;
+    if(wkndNurse!=null) html+=hrsRow('Weekend Nurse', wkndNurse, null);
+    if(wkndRn!=null) html+=hrsRow('Weekend RN', wkndRn, null);
+  }
+
+  if(nt!=null||rt!=null||at!=null){
+    html+=`<div class="mod-section-hdr" style="margin-top:1rem">Staff Turnover (Annual)</div><div class="turnover-grid">`;
+    function tItem(label, val, avg){
+      if(val==null) return '';
+      const better=avg==null?null:parseFloat(val)<=parseFloat(avg);
+      const cls=better===true?'tv-green':better===false?'tv-red':'tv-norm';
+      return `<div class="turnover-item">
+        <div class="tv-lbl">${esc(label)}</div>
+        <div class="tv-val ${cls}">${parseFloat(val).toFixed(1)}%</div>
+        ${avg!=null?`<div class="tv-bench">State avg: ${parseFloat(avg).toFixed(1)}%</div>`:''}
+      </div>`;
+    }
+    html+=tItem('Nursing Staff', nt, avgTurnover);
+    html+=tItem('RN Only', rt, null);
+    html+=tItem('Administrator', at, null);
+    html+=`</div>`;
+  }
+
+  const parts=[];
+  if(rn!=null&&avgRn!=null){
+    const r=parseFloat(rn), a=parseFloat(avgRn);
+    if(r<a*0.8) parts.push(`RN staffing is <strong>significantly below</strong> the state average (${r.toFixed(2)} vs ${a.toFixed(2)} hrs/day).`);
+    else if(r<a) parts.push(`RN staffing is slightly below the state average (${r.toFixed(2)} vs ${a.toFixed(2)} hrs/day).`);
+    else parts.push(`RN staffing at <strong>${r.toFixed(2)} hrs/day</strong> is at or above the state average.`);
+  }
+  if(nt!=null){
+    const t=parseFloat(nt);
+    if(t>75) parts.push(`Nursing turnover of <strong>${t.toFixed(1)}%</strong> is very high — care continuity may be affected.`);
+    else if(t>50) parts.push(`Nursing turnover of <strong>${t.toFixed(1)}%</strong> is elevated — worth monitoring during due diligence.`);
+    else parts.push(`Nursing turnover of <strong>${t.toFixed(1)}%</strong> is within a manageable range.`);
+  }
+  if(parts.length) html+=`<div class="mod-summary">${parts.map(p=>`<p>${p}</p>`).join('')}</div>`;
+  return html;
+}
+
+// ── Occupancy detail modal builder ───────────────────────────────────
+function buildOccupancyModal(f, sa){
+  const census=f.avg_daily_census, beds=f.num_beds;
+  const occ=(beds&&census)?parseFloat(census)/parseInt(beds)*100:null;
+  const stateOcc=sa.avg_occupancy;
+  const occColor=occ==null?'#94a3b8':occ>=85?'#22c55e':occ>=70?'#f59e0b':'#ef4444';
+  const occLabel=occ==null?'N/A':occ>=85?'High':occ>=70?'Moderate':'Low';
+
+  let html=`<div class="occ-gauge-wrap">
+    <div class="occ-gauge-label">Occupancy Rate</div>
+    <div class="occ-gauge-circle" style="border-color:${occColor}">
+      <div class="occ-gauge-pct" style="color:${occColor}">${occ!=null?occ.toFixed(1)+'%':'N/A'}</div>
+      <div class="occ-gauge-sub" style="color:${occColor}">${occLabel}</div>
+    </div>
+    ${stateOcc!=null?`<div class="occ-state-avg">State average: ${parseFloat(stateOcc).toFixed(1)}%</div>`:''}
+  </div>`;
+
+  html+=`<div class="mod-section-hdr" style="margin-top:1rem">Beds &amp; Census</div>
+    <table class="occ-table"><tbody>
+      <tr><td>Licensed Beds</td><td><strong>${beds!=null?beds:'N/A'}</strong></td></tr>
+      <tr><td>Avg Daily Census</td><td><strong>${census!=null?parseFloat(census).toFixed(1):'N/A'}</strong></td></tr>
+      ${occ!=null?`<tr><td>Occupancy Rate</td><td><strong style="color:${occColor}">${occ.toFixed(1)}%</strong></td></tr>`:''}
+      ${stateOcc!=null?`<tr><td>State Avg Occupancy</td><td><strong>${parseFloat(stateOcc).toFixed(1)}%</strong></td></tr>`:''}
+    </tbody></table>`;
+
+  html+=`<div class="mod-section-hdr" style="margin-top:1rem">Payer Mix</div>
+    <div class="payer-placeholder">Payer mix data not available in this dataset. Check CMS cost reports for Medicare/Medicaid split.</div>`;
+
+  const parts=[];
+  if(occ!=null){
+    if(occ>=85) parts.push(`At <strong>${occ.toFixed(1)}%</strong>, this facility is near capacity — a strong revenue signal.`);
+    else if(occ>=70) parts.push(`Occupancy of <strong>${occ.toFixed(1)}%</strong> is moderate — operationally stable with room to grow.`);
+    else parts.push(`Occupancy of <strong>${occ.toFixed(1)}%</strong> is low — may reflect referral challenges or local market conditions.`);
+  }
+  if(stateOcc!=null&&occ!=null){
+    const diff=occ-parseFloat(stateOcc);
+    if(Math.abs(diff)>5) parts.push(`This is <strong>${Math.abs(diff).toFixed(1)} percentage points ${diff>0?'above':'below'}</strong> the state average (${parseFloat(stateOcc).toFixed(1)}%).`);
+  }
+  if(parts.length) html+=`<div class="mod-summary">${parts.map(p=>`<p>${p}</p>`).join('')}</div>`;
+  return html;
+}
+
+// ── Quality Measures ────────────────────────────────────────────────
+const LABELS={401:'ADL Decline',404:'Weight Loss',406:'Catheter Use',407:'UTI Rate',408:'Depression Symptoms',409:'Restraint Use',410:'Falls w/ Injury',415:'Pneumococcal Vaccine (LS)',430:'Pneumococcal Vaccine (SS)',434:'Antipsychotic (New, SS)',451:'Walking Worsened',452:'Antianxiety Medication',454:'Flu Vaccine (LS)',472:'Flu Vaccine (SS)',479:'Pressure Ulcers',480:'Bowel/Bladder Incontinence',481:'Antipsychotic (LS)'};
+const HIGHER_IS_BETTER=new Set([415,430,454,472]);
+const NATIONAL={401:16.5,404:5.4,406:1.7,407:2.2,408:11.3,409:0.1,410:3.3,415:93.4,430:81.7,434:1.5,451:14.9,452:19.6,454:95.4,472:79.7,479:5.0,480:19.8,481:16.7};
+
+function qmColor(code,val){
+  const nat=NATIONAL[code];
+  if(val==null||nat==null) return '#94a3b8';
+  const higherBetter=HIGHER_IS_BETTER.has(parseInt(code));
+  const diff=higherBetter?val-nat:nat-val;
+  return diff>3?'#22c55e':diff<-3?'#ef4444':'#f59e0b';
+}
+function qmBarHtml(code,val){
+  if(val==null) return '<span style="color:#94a3b8;font-size:.75rem">N/A</span>';
+  const color=qmColor(code,val);
+  const nat=NATIONAL[code];
+  const max=HIGHER_IS_BETTER.has(parseInt(code))?100:Math.max(nat*2.5,val*1.2,5);
+  const pct=Math.min(100,(val/max)*100);
+  const natPct=nat!=null?Math.min(100,(nat/max)*100):null;
+  return `<div style="position:relative;height:6px;background:#1e293b;border-radius:3px;margin:.3rem 0">
+    <div style="width:${pct}%;height:100%;background:${color};border-radius:3px"></div>
+    ${natPct!=null?`<div style="position:absolute;top:-2px;left:${natPct}%;width:2px;height:10px;background:#64748b;border-radius:1px" title="National avg: ${nat}%"></div>`:''}
+  </div>`;
+}
+function renderQmGroup(group, title){
+  if(!group.length) return '';
+  let html=`<div style="margin-bottom:1.25rem"><div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin-bottom:.6rem">${title}</div>`;
+  for(const m of group){
+    const label=LABELS[m.measure_code]||m.measure_desc;
+    const val=m.avg_score;
+    const nat=NATIONAL[m.measure_code];
+    const color=qmColor(m.measure_code,val);
+    const star=m.used_in_rating==='Y'?'<span title="Used in 5-star rating" style="color:#f59e0b;font-size:.7rem">★</span>':'';
+    html+=`<div style="margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
+        <span style="font-size:.78rem;color:#475569">${esc(label)} ${star}</span>
+        <span style="font-size:.78rem;font-weight:700;color:${color};white-space:nowrap">
+          ${val!=null?val.toFixed(1)+'%':'N/A'}
+          ${nat!=null&&val!=null?`<span style="font-size:.7rem;color:#94a3b8;font-weight:400"> vs ${nat}% nat'l</span>`:''}
+        </span>
+      </div>
+      ${qmBarHtml(m.measure_code,val)}
+    </div>`;
+  }
+  html+='</div>';
+  return html;
+}
+
+async function loadQualityMeasures(enrollmentId){
+  try{
+    const res=await fetch('/api/quality-measures/'+encodeURIComponent(enrollmentId));
+    if(!res.ok) return;
+    const data=await res.json();
+    const measures=data.measures||[];
+    if(!measures.length) return;
+    const longStay=measures.filter(m=>m.resident_type==='Long Stay');
+    const shortStay=measures.filter(m=>m.resident_type==='Short Stay');
+    _modals.qualityMeasures=
+      `<p style="font-size:.75rem;color:#94a3b8;margin-bottom:1rem">Gray marker = national average. ★ = used in CMS 5-star rating. Green = better than national. Red = worse.</p>`+
+      renderQmGroup(longStay,'Long Stay Residents')+
+      renderQmGroup(shortStay,'Short Stay Residents');
+    document.getElementById('qm-btn').style.display='inline-flex';
+  }catch(e){}
+}
+
+loadProfile();
+</script>
+</body>
+</html>
