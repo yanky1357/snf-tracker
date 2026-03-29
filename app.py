@@ -6,8 +6,6 @@ import json
 import sqlite3
 import re
 import threading
-import urllib.request
-import urllib.error
 from datetime import datetime
 from functools import wraps
 
@@ -44,35 +42,22 @@ def init_db():
 # ── Email helpers ────────────────────────────────────────────────────────────
 
 def send_email(to_email, subject, html_body):
-    """Send an email via Resend API in a background thread."""
+    """Send an email via Resend SDK in a background thread."""
     if not RESEND_API_KEY:
         print(f'[EMAIL SKIPPED] No RESEND_API_KEY configured. Would send to {to_email}: {subject}')
         return
 
     def _send():
         try:
-            payload = json.dumps({
+            import resend
+            resend.api_key = RESEND_API_KEY
+            r = resend.Emails.send({
                 'from': 'NourishNY <onboarding@resend.dev>',
                 'to': [to_email],
                 'subject': subject,
                 'html': html_body
-            }).encode('utf-8')
-
-            req = urllib.request.Request(
-                'https://api.resend.com/emails',
-                data=payload,
-                headers={
-                    'Authorization': f'Bearer {RESEND_API_KEY}',
-                    'Content-Type': 'application/json'
-                },
-                method='POST'
-            )
-            resp = urllib.request.urlopen(req, timeout=10)
-            body = resp.read().decode('utf-8')
-            print(f'[EMAIL SENT] To: {to_email} Subject: {subject} Status: {resp.status} Response: {body}')
-        except urllib.error.HTTPError as e:
-            error_body = e.read().decode('utf-8')
-            print(f'[EMAIL ERROR] Status: {e.code} Response: {error_body}')
+            })
+            print(f'[EMAIL SENT] To: {to_email} Subject: {subject} Response: {r}')
         except Exception as e:
             print(f'[EMAIL ERROR] {e}')
 
