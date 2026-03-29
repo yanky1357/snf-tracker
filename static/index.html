@@ -5,6 +5,151 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NourishNY — Free Meals Delivered to Your Door</title>
   <link rel="stylesheet" href="/static/style.css" />
+  <style>
+    /* ── Landing Page Extras ─────────────────────────────────── */
+    .program-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      padding: 6px 20px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .hero-es { font-style: italic; opacity: 0.85; font-size: 1.1rem; margin-top: 4px; }
+
+    .elig-section { padding: 60px 0; }
+    .elig-list {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .elig-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .elig-item:last-child { border-bottom: none; }
+    .elig-check {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--green);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .elig-text strong { display: block; font-size: 1rem; margin-bottom: 2px; }
+    .elig-text span { color: var(--text-mid); font-size: 0.9rem; font-style: italic; }
+
+    .food-banner {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      overflow: hidden;
+    }
+    .food-banner-item {
+      height: 200px;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+    }
+    .food-emoji-banner {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      font-size: 3rem;
+      padding: 32px 0;
+      background: var(--bg-alt);
+    }
+
+    .section-es {
+      text-align: center;
+      color: var(--text-mid);
+      font-style: italic;
+      margin-top: -30px;
+      margin-bottom: 40px;
+      font-size: 0.95rem;
+    }
+
+    .info-box {
+      background: var(--green);
+      color: #fff;
+      padding: 40px 20px;
+      text-align: center;
+      margin-top: 0;
+    }
+    .info-box h2 {
+      font-family: var(--font-serif);
+      font-size: 1.6rem;
+      margin-bottom: 8px;
+    }
+    .info-box p { opacity: 0.9; margin-bottom: 6px; }
+    .info-box .info-link {
+      display: inline-block;
+      background: #fff;
+      color: var(--green);
+      padding: 10px 28px;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      margin-top: 14px;
+      text-decoration: none;
+    }
+
+    .contact-section {
+      padding: 50px 0;
+      text-align: center;
+    }
+    .contact-section h2 {
+      font-family: var(--font-serif);
+      color: var(--green);
+      margin-bottom: 20px;
+    }
+    .contact-grid {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    .contact-item {
+      text-align: center;
+    }
+    .contact-item .contact-icon {
+      font-size: 1.8rem;
+      margin-bottom: 8px;
+    }
+    .contact-item strong { display: block; color: var(--green); font-size: 0.9rem; }
+    .contact-item span { color: var(--text-mid); font-size: 0.95rem; }
+
+    .cta-banner {
+      background: linear-gradient(135deg, var(--green) 0%, #1a3a0a 100%);
+      color: #fff;
+      padding: 50px 20px;
+      text-align: center;
+    }
+    .cta-banner h2 {
+      font-family: var(--font-serif);
+      font-size: 2rem;
+      margin-bottom: 8px;
+    }
+    .cta-banner p { opacity: 0.9; margin-bottom: 20px; font-size: 1.05rem; }
+    .cta-banner .btn {
+      background: #fff;
+      color: var(--green);
+      font-size: 1.1rem;
+      padding: 14px 40px;
+    }
+    .cta-banner .btn:hover { background: #f0f0f0; }
+  </style>
 </head>
 <body>
 
@@ -22,98 +167,188 @@
   <!-- Hero -->
   <section class="hero">
     <div class="container hero-content">
-      <h1>Free Healthy Meals<br>Delivered to Your Door</h1>
-      <p class="hero-sub">A New York State Medicaid program providing nutritious food boxes to eligible families — at no cost to you.</p>
+      <div class="program-badge">NYS 1115 Waiver &bull; SCN Program</div>
+      <h1>Free Help For You<br>&amp; Your Family!</h1>
+      <p class="hero-es">Ayuda Gratuita Para Usted y Su Familia!</p>
+      <p class="hero-sub">A New York State Medicaid program providing nutritious food delivered to your door — at absolutely no cost to you.</p>
       <a href="/apply" class="btn btn-lg">Apply Now &rarr;</a>
     </div>
   </section>
 
-  <!-- What You Get -->
-  <section class="section" id="what-you-get">
+  <!-- Food Emoji Banner -->
+  <div class="food-emoji-banner">
+    <span>&#127813;</span>
+    <span>&#129367;</span>
+    <span>&#127826;</span>
+    <span>&#129361;</span>
+    <span>&#127830;</span>
+    <span>&#129382;</span>
+    <span>&#127822;</span>
+    <span>&#129388;</span>
+  </div>
+
+  <!-- Eligibility -->
+  <section class="elig-section section-alt" id="eligibility">
     <div class="container">
-      <h2 class="section-title">What You'll Receive</h2>
-      <p class="section-sub">Nutritious, fresh food delivered right to your home</p>
-      <div class="grid-3">
-        <div class="card feature-card">
-          <div class="feature-icon">&#127813;</div>
-          <h3>Fresh Produce</h3>
-          <p>Seasonal fruits and vegetables sourced from local farms and trusted suppliers.</p>
+      <h2 class="section-title">You May Be Eligible If...</h2>
+      <p class="section-es">Usted puede ser elegible si...</p>
+
+      <div class="elig-list">
+        <div class="elig-item">
+          <div class="elig-check">&#10003;</div>
+          <div class="elig-text">
+            <strong>You are pregnant or recently had a baby</strong>
+            <span>Est&aacute; embarazada o tuvo un beb&eacute; recientemente</span>
+          </div>
         </div>
-        <div class="card feature-card">
-          <div class="feature-icon">&#127854;</div>
-          <h3>Proteins &amp; Grains</h3>
-          <p>Lean meats, eggs, rice, pasta, beans, and other pantry essentials for balanced meals.</p>
+        <div class="elig-item">
+          <div class="elig-check">&#10003;</div>
+          <div class="elig-text">
+            <strong>You have a chronic health condition</strong>
+            <span>Tiene una condici&oacute;n de salud cr&oacute;nica</span>
+          </div>
         </div>
-        <div class="card feature-card">
-          <div class="feature-icon">&#129382;</div>
-          <h3>Dairy &amp; More</h3>
-          <p>Milk, cheese, yogurt, cereal, juice, and snacks for the whole family.</p>
+        <div class="elig-item">
+          <div class="elig-check">&#10003;</div>
+          <div class="elig-text">
+            <strong>You have a disability</strong>
+            <span>Tiene una discapacidad</span>
+          </div>
+        </div>
+        <div class="elig-item">
+          <div class="elig-check">&#10003;</div>
+          <div class="elig-text">
+            <strong>You are on Medicaid in New York State</strong>
+            <span>Est&aacute; en Medicaid en el Estado de Nueva York</span>
+          </div>
+        </div>
+        <div class="elig-item">
+          <div class="elig-check">&#10003;</div>
+          <div class="elig-text">
+            <strong>You need help with food, housing, or rides</strong>
+            <span>Necesita ayuda con comida, vivienda o transporte</span>
+          </div>
+        </div>
+        <div class="elig-item">
+          <div class="elig-check">&#10003;</div>
+          <div class="elig-text">
+            <strong>You have a serious mental illness or substance use disorder</strong>
+            <span>Tiene una enfermedad mental grave o trastorno por uso de sustancias</span>
+          </div>
+        </div>
+        <div class="elig-item">
+          <div class="elig-check">&#10003;</div>
+          <div class="elig-text">
+            <strong>You have a child under 18 with a chronic condition</strong>
+            <span>Tiene un hijo menor de 18 a&ntilde;os con una condici&oacute;n cr&oacute;nica</span>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Who Qualifies -->
-  <section class="section section-alt" id="eligibility">
+  <!-- What You Can Get -->
+  <section class="section" id="what-you-get">
     <div class="container">
-      <h2 class="section-title">Who Qualifies?</h2>
-      <p class="section-sub">This program is available to New York Medicaid members who meet one or more of the following:</p>
-      <div class="grid-2">
-        <div class="card eligibility-card">
-          <div class="elig-icon">&#128105;&#8205;&#128052;</div>
-          <h4>Pregnant or Postpartum</h4>
-          <p>Women who are currently pregnant, recently had a miscarriage, or are within 12 months postpartum.</p>
+      <h2 class="section-title">What You Can Get For Free</h2>
+      <p class="section-es">Lo Que Puede Obtener Gratis</p>
+      <div class="grid-3">
+        <div class="card feature-card">
+          <div class="feature-icon">&#127858;</div>
+          <h3>Ready Meals</h3>
+          <p style="color:var(--green);font-style:italic;font-size:0.85rem;margin-bottom:6px;">Comidas Preparadas</p>
+          <p>Home-delivered healthy meals, fresh fruits, vegetables &amp; cooking supplies.</p>
+          <p style="color:var(--text-light);font-size:0.85rem;font-style:italic;margin-top:6px;">Comidas saludables a domicilio, frutas frescas y verduras.</p>
         </div>
-        <div class="card eligibility-card">
-          <div class="elig-icon">&#127968;</div>
-          <h4>Health Home Enrolled</h4>
-          <p>Individuals enrolled in a Health Home Care Management program.</p>
+        <div class="card feature-card">
+          <div class="feature-icon">&#127813;</div>
+          <h3>Fresh Produce</h3>
+          <p style="color:var(--green);font-style:italic;font-size:0.85rem;margin-bottom:6px;">Frutas y Verduras Frescas</p>
+          <p>Seasonal fruits and vegetables sourced from local farms and trusted suppliers.</p>
+          <p style="color:var(--text-light);font-size:0.85rem;font-style:italic;margin-top:6px;">Frutas y verduras de temporada de granjas locales.</p>
         </div>
-        <div class="card eligibility-card">
-          <div class="elig-icon">&#128118;</div>
-          <h4>Children with Conditions</h4>
-          <p>Families with children under 18 diagnosed with a chronic health condition.</p>
+        <div class="card feature-card">
+          <div class="feature-icon">&#129382;</div>
+          <h3>Dairy &amp; Proteins</h3>
+          <p style="color:var(--green);font-style:italic;font-size:0.85rem;margin-bottom:6px;">L&aacute;cteos y Prote&iacute;nas</p>
+          <p>Milk, cheese, eggs, lean meats, rice, pasta, beans, and pantry essentials.</p>
+          <p style="color:var(--text-light);font-size:0.85rem;font-style:italic;margin-top:6px;">Leche, queso, huevos, carnes, arroz, pasta y m&aacute;s.</p>
         </div>
-        <div class="card eligibility-card">
-          <div class="elig-icon">&#128154;</div>
-          <h4>Mental Health &amp; SUD</h4>
-          <p>Individuals with a serious mental illness or substance use disorder diagnosis.</p>
-        </div>
-      </div>
-      <div class="center mt-2">
-        <p class="text-muted">Must be a <strong>New York State Medicaid</strong> member with a valid Medicaid ID.</p>
       </div>
     </div>
   </section>
 
   <!-- How It Works -->
-  <section class="section" id="how-it-works">
+  <section class="section section-alt" id="how-it-works">
     <div class="container">
-      <h2 class="section-title">How It Works</h2>
+      <h2 class="section-title">How To Get Help</h2>
+      <p class="section-es">C&oacute;mo Obtener Ayuda</p>
       <div class="steps">
         <div class="step">
           <div class="step-number">1</div>
           <h4>Apply Online</h4>
-          <p>Fill out a short application with your personal and Medicaid information.</p>
+          <p style="color:var(--green);font-style:italic;font-size:0.85rem;">Aplique en L&iacute;nea</p>
+          <p>Fill out a quick application with your Medicaid and personal information.</p>
         </div>
         <div class="step-line"></div>
         <div class="step">
           <div class="step-number">2</div>
           <h4>Get Approved</h4>
+          <p style="color:var(--green);font-style:italic;font-size:0.85rem;">Sea Aprobado</p>
           <p>We verify your eligibility and enroll you in the program.</p>
         </div>
         <div class="step-line"></div>
         <div class="step">
           <div class="step-number">3</div>
-          <h4>Receive Deliveries</h4>
+          <h4>Receive Food</h4>
+          <p style="color:var(--green);font-style:italic;font-size:0.85rem;">Reciba Comida</p>
           <p>Fresh food boxes delivered directly to your door — free of charge.</p>
         </div>
       </div>
-      <div class="center mt-3">
-        <a href="/apply" class="btn btn-lg">Get Started &rarr;</a>
+    </div>
+  </section>
+
+  <!-- CTA Banner -->
+  <section class="cta-banner">
+    <div class="container">
+      <h2>Ready to Apply?</h2>
+      <p>It only takes 5 minutes. Get free healthy meals delivered to your family.</p>
+      <a href="/apply" class="btn btn-lg">Apply Now &rarr;</a>
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <section class="contact-section">
+    <div class="container">
+      <h2>Questions? Contact Us</h2>
+      <p class="text-muted">We're here to help you every step of the way.</p>
+      <div class="contact-grid">
+        <div class="contact-item">
+          <div class="contact-icon">&#128222;</div>
+          <strong>Call Us</strong>
+          <span>(718) 555-0100</span>
+        </div>
+        <div class="contact-item">
+          <div class="contact-icon">&#128231;</div>
+          <strong>Email Us</strong>
+          <span>hello@nourish-ny.com</span>
+        </div>
+        <div class="contact-item">
+          <div class="contact-icon">&#128205;</div>
+          <strong>Serving</strong>
+          <span>New York State</span>
+        </div>
       </div>
     </div>
   </section>
+
+  <!-- Program Info -->
+  <div class="info-box">
+    <h2>Ask Your Doctor or Health Plan Today!</h2>
+    <p>Pregunte a su doctor o plan de salud hoy!</p>
+    <a href="https://health.ny.gov/health_care/medicaid/redesign/sdh/scn" target="_blank" class="info-link">health.ny.gov/health_care/medicaid/redesign/sdh/scn</a>
+    <p style="margin-top:16px;font-size:0.8rem;opacity:0.7;">NEW YORK STATE DEPARTMENT OF HEALTH &bull; MEDICAID &bull; SOCIAL CARE NETWORK</p>
+  </div>
 
   <!-- Footer -->
   <footer class="site-footer">
