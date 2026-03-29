@@ -59,9 +59,16 @@ def send_email(to_email, subject, html_body):
             msg['Subject'] = subject
             msg.attach(MIMEText(html_body, 'html'))
 
-            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-                server.login(SMTP_EMAIL, SMTP_PASSWORD)
-                server.send_message(msg)
+            # Try port 587 (STARTTLS) first, then fall back to 465 (SSL)
+            try:
+                with smtplib.SMTP('smtp.gmail.com', 587, timeout=10) as server:
+                    server.starttls()
+                    server.login(SMTP_EMAIL, SMTP_PASSWORD)
+                    server.send_message(msg)
+            except (OSError, smtplib.SMTPException):
+                with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=10) as server:
+                    server.login(SMTP_EMAIL, SMTP_PASSWORD)
+                    server.send_message(msg)
             print(f'[EMAIL SENT] To: {to_email} Subject: {subject}')
         except Exception as e:
             print(f'[EMAIL ERROR] {e}')
