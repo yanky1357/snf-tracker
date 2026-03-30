@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Check Application Status — NourishNY</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <style>
+    .status-main { padding: 40px 0 60px; flex: 1; }
+
+    /* Login */
+    .status-login {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 200px);
+      padding: 20px;
+    }
+    .status-login-card {
+      width: 100%;
+      max-width: 420px;
+    }
+    .status-login-card h2 {
+      text-align: center;
+      margin-bottom: 8px;
+      color: var(--green);
+      font-family: var(--font-serif);
+    }
+    .status-login-card .login-sub {
+      text-align: center;
+      color: var(--text-mid);
+      margin-bottom: 24px;
+      font-size: 0.9rem;
+    }
+
+    /* Dashboard */
+    .dash-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .dash-header h1 {
+      font-family: var(--font-serif);
+      color: var(--green);
+      font-size: 1.6rem;
+    }
+    .dash-header .badge-status {
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-transform: capitalize;
+    }
+    .badge-status-new { background: #E3F2FD; color: #1565C0; }
+    .badge-status-reviewed { background: #FFF3E0; color: #E65100; }
+    .badge-status-enrolled { background: var(--green-pale); color: var(--green); }
+    .badge-status-rejected { background: #FFEBEE; color: #C62828; }
+
+    /* Progress bar */
+    .progress-track {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+      position: relative;
+    }
+    .progress-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      position: relative;
+      z-index: 1;
+    }
+    .progress-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--border);
+      color: var(--text-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+      transition: all 0.3s;
+    }
+    .progress-circle.active {
+      background: var(--green);
+      color: #fff;
+    }
+    .progress-circle.completed {
+      background: var(--green);
+      color: #fff;
+    }
+    .progress-circle.rejected-circle {
+      background: #C62828;
+      color: #fff;
+    }
+    .progress-label {
+      font-size: 0.75rem;
+      color: var(--text-light);
+      text-align: center;
+      font-weight: 600;
+    }
+    .progress-label.active { color: var(--green); }
+    .progress-label.rejected-label { color: #C62828; }
+    .progress-line {
+      position: absolute;
+      top: 20px;
+      left: 15%;
+      right: 15%;
+      height: 3px;
+      background: var(--border);
+      z-index: 0;
+    }
+    .progress-line-fill {
+      height: 100%;
+      background: var(--green);
+      transition: width 0.5s;
+    }
+    .progress-line-fill.rejected-fill { background: #C62828; }
+
+    /* Info cards */
+    .info-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 600px) {
+      .info-cards { grid-template-columns: 1fr; }
+    }
+    .info-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 20px;
+      border: 1px solid var(--border);
+    }
+    .info-card h3 {
+      font-size: 0.95rem;
+      color: var(--green);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid #f0ede5;
+      font-size: 0.9rem;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: var(--text-light); font-size: 0.8rem; }
+    .info-value { font-weight: 500; text-align: right; }
+
+    .member-item {
+      background: var(--bg-alt);
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+    }
+    .member-item:last-child { margin-bottom: 0; }
+
+    .applied-date {
+      text-align: center;
+      color: var(--text-light);
+      font-size: 0.85rem;
+      margin-top: 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">&#9752;</span>
+        <span class="logo-text">NourishNY</span>
+      </a>
+      <button id="logoutBtn" class="btn btn-sm btn-outline" style="display:none;" onclick="statusLogout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- Login View -->
+  <div id="loginView" class="status-login">
+    <div class="status-login-card card">
+      <h2>Check Your Application</h2>
+      <p class="login-sub">Enter your Medicaid ID and Date of Birth to see your application status.</p>
+      <form id="statusLoginForm">
+        <div class="form-group">
+          <label for="loginMedicaid">Medicaid ID <span class="req">*</span></label>
+          <input type="text" id="loginMedicaid" placeholder="E.g. AB12345C" required maxlength="8" />
+        </div>
+        <div class="form-group">
+          <label for="loginDob">Date of Birth <span class="req">*</span></label>
+          <input type="text" id="loginDob" placeholder="MM/DD/YYYY" required />
+        </div>
+        <div id="loginError" class="form-error" style="display:none;"></div>
+        <button type="submit" class="btn btn-block" style="margin-top:8px;">Check Status</button>
+      </form>
+      <p style="text-align:center;margin-top:16px;font-size:0.85rem;color:var(--text-light);">
+        Don't have an application yet? <a href="/apply">Apply now</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Dashboard View -->
+  <div id="dashboardView" style="display:none;">
+    <main class="status-main">
+      <div class="container container-sm">
+
+        <div class="dash-header">
+          <h1 id="dashName">Your Application</h1>
+          <span id="dashBadge" class="badge-status"></span>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-track">
+          <div class="progress-line"><div id="progressFill" class="progress-line-fill" style="width:0%"></div></div>
+          <div class="progress-step">
+            <div id="step1" class="progress-circle">1</div>
+            <span class="progress-label">Applied</span>
+          </div>
+          <div class="progress-step">
+            <div id="step2" class="progress-circle">2</div>
+            <span class="progress-label">Under Review</span>
+          </div>
+          <div class="progress-step">
+            <div id="step3" class="progress-circle">3</div>
+            <span id="step3label" class="progress-label">Enrolled</span>
+          </div>
+        </div>
+
+        <!-- Info Cards -->
+        <div class="info-cards">
+
+          <div class="info-card">
+            <h3>&#128100; Personal Information</h3>
+            <div class="info-row"><span class="info-label">Name</span><span class="info-value" id="infoName"></span></div>
+            <div class="info-row"><span class="info-label">Date of Birth</span><span class="info-value" id="infoDob"></span></div>
+            <div class="info-row"><span class="info-label">Medicaid ID</span><span class="info-value" id="infoMedicaid"></span></div>
+          </div>
+
+          <div class="info-card">
+            <h3>&#128222; Contact</h3>
+            <div class="info-row"><span class="info-label">Phone</span><span class="info-value" id="infoPhone"></span></div>
+            <div class="info-row"><span class="info-label">Email</span><span class="info-value" id="infoEmail"></span></div>
+          </div>
+
+          <div class="info-card">
+            <h3>&#128205; Address</h3>
+            <div class="info-row"><span class="info-label">Street</span><span class="info-value" id="infoStreet"></span></div>
+            <div class="info-row"><span class="info-label">City/State/Zip</span><span class="info-value" id="infoCityState"></span></div>
+          </div>
+
+          <div class="info-card">
+            <h3>&#128154; Health Categories</h3>
+            <div id="infoHealth"></div>
+          </div>
+
+        </div>
+
+        <!-- Household Members -->
+        <div id="membersCard" class="info-card" style="margin-top:16px;display:none;">
+          <h3>&#128106; Household Members</h3>
+          <div id="infoMembers"></div>
+        </div>
+
+        <p class="applied-date" id="infoAppliedDate"></p>
+      </div>
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>&copy; 2026 NourishNY &mdash; An SCN Approved Vendor serving New York families.</p>
+      <p class="text-muted-sm">Confidential &bull; SCN Approved &bull; Local &amp; Fresh</p>
+    </div>
+  </footer>
+
+  <script>
+    const loginForm = document.getElementById('statusLoginForm');
+    const loginView = document.getElementById('loginView');
+    const dashView = document.getElementById('dashboardView');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errDiv = document.getElementById('loginError');
+      errDiv.style.display = 'none';
+
+      const medicaid_id = document.getElementById('loginMedicaid').value.trim().toUpperCase();
+      const dob = document.getElementById('loginDob').value.trim();
+
+      if (!medicaid_id || !dob) {
+        errDiv.textContent = 'Please fill in both fields.';
+        errDiv.style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/status/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ medicaid_id, date_of_birth: dob })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          loadDashboard();
+        } else {
+          errDiv.textContent = data.error || 'Application not found.';
+          errDiv.style.display = 'block';
+        }
+      } catch (err) {
+        errDiv.textContent = 'Network error. Please try again.';
+        errDiv.style.display = 'block';
+      }
+    });
+
+    async function loadDashboard() {
+      try {
+        const res = await fetch('/api/status/application');
+        if (res.status === 401) return;
+        const a = await res.json();
+
+        loginView.style.display = 'none';
+        dashView.style.display = 'block';
+        logoutBtn.style.display = 'inline-block';
+
+        // Header
+        document.getElementById('dashName').textContent = `Hi, ${esc(a.first_name)}!`;
+        const badge = document.getElementById('dashBadge');
+        badge.textContent = a.status;
+        badge.className = `badge-status badge-status-${a.status}`;
+
+        // Progress bar
+        updateProgress(a.status);
+
+        // Info cards
+        document.getElementById('infoName').textContent = `${a.first_name} ${a.last_name}`;
+        document.getElementById('infoDob').textContent = a.date_of_birth;
+        document.getElementById('infoMedicaid').textContent = a.medicaid_id;
+        document.getElementById('infoPhone').textContent = a.cell_phone;
+        document.getElementById('infoEmail').textContent = a.email;
+        document.getElementById('infoStreet').textContent = a.street_address + (a.apt_unit ? `, ${a.apt_unit}` : '');
+        document.getElementById('infoCityState').textContent = `${a.city}, ${a.state} ${a.zipcode}`;
+
+        // Health categories
+        const healthDiv = document.getElementById('infoHealth');
+        if (a.health_categories && a.health_categories.length > 0) {
+          healthDiv.innerHTML = a.health_categories.map(h =>
+            `<div style="padding:4px 0;font-size:0.9rem;">&#10003; ${esc(h)}</div>`
+          ).join('');
+        } else {
+          healthDiv.innerHTML = '<p style="color:var(--text-light);font-size:0.9rem;">None selected</p>';
+        }
+
+        // Household members
+        const members = a.household_members || [];
+        const membersCard = document.getElementById('membersCard');
+        const membersDiv = document.getElementById('infoMembers');
+        if (members.length > 0) {
+          membersCard.style.display = 'block';
+          membersDiv.innerHTML = members.map(m =>
+            `<div class="member-item">
+              <strong>${esc(m.first_name)} ${esc(m.last_name)}</strong>
+              <span style="color:var(--text-light);margin-left:8px;">DOB: ${esc(m.date_of_birth)} &bull; Medicaid: ${esc(m.medicaid_id)}</span>
+            </div>`
+          ).join('');
+        } else {
+          membersCard.style.display = 'none';
+        }
+
+        // Applied date
+        if (a.created_at) {
+          const d = new Date(a.created_at);
+          document.getElementById('infoAppliedDate').textContent =
+            `Application submitted on ${d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+        }
+
+      } catch (err) {
+        console.error('Failed to load dashboard', err);
+      }
+    }
+
+    function updateProgress(status) {
+      const step1 = document.getElementById('step1');
+      const step2 = document.getElementById('step2');
+      const step3 = document.getElementById('step3');
+      const step3label = document.getElementById('step3label');
+      const fill = document.getElementById('progressFill');
+
+      // Reset
+      [step1, step2, step3].forEach(s => { s.className = 'progress-circle'; });
+      fill.className = 'progress-line-fill';
+      step3label.className = 'progress-label';
+      step3label.textContent = 'Enrolled';
+
+      if (status === 'new') {
+        step1.classList.add('active');
+        step1.textContent = '\\u2713';
+        fill.style.width = '0%';
+      } else if (status === 'reviewed') {
+        step1.classList.add('completed');
+        step1.textContent = '\\u2713';
+        step2.classList.add('active');
+        step2.textContent = '\\u2713';
+        fill.style.width = '50%';
+      } else if (status === 'enrolled') {
+        step1.classList.add('completed');
+        step1.textContent = '\\u2713';
+        step2.classList.add('completed');
+        step2.textContent = '\\u2713';
+        step3.classList.add('completed');
+        step3.textContent = '\\u2713';
+        fill.style.width = '100%';
+      } else if (status === 'rejected') {
+        step1.classList.add('completed');
+        step1.textContent = '\\u2713';
+        step2.classList.add('completed');
+        step2.textContent = '\\u2713';
+        step3.classList.add('rejected-circle');
+        step3.textContent = '\\u2717';
+        step3label.textContent = 'Not Eligible';
+        step3label.classList.add('rejected-label');
+        fill.style.width = '100%';
+        fill.classList.add('rejected-fill');
+      }
+    }
+
+    window.statusLogout = async () => {
+      await fetch('/api/status/logout', { method: 'POST' });
+      loginView.style.display = '';
+      dashView.style.display = 'none';
+      logoutBtn.style.display = 'none';
+      document.getElementById('loginMedicaid').value = '';
+      document.getElementById('loginDob').value = '';
+    };
+
+    function esc(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = String(str);
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>

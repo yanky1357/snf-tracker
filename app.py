@@ -221,7 +221,10 @@ def send_applicant_confirmation(data):
                     <p style="margin:8px 0;"><strong>3. Delivery</strong> — Once enrolled, your food deliveries will begin on a regular schedule.</p>
                 </div>
 
-                <p style="color:#888;font-size:14px;">If you have any questions, please don't hesitate to reach out.</p>
+                <div style="text-align:center;margin:20px 0;">
+                    <a href="{SITE_URL}/status" style="background:#2D5016;color:white;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block;">Track Your Application</a>
+                </div>
+                <p style="color:#888;font-size:14px;">You can check your application status anytime using your Medicaid ID and Date of Birth.</p>
                 <p style="color:#2D5016;font-weight:600;">— The NourishNY Team</p>
             </div>
             <div style="text-align:center;padding:16px;color:#888;font-size:12px;">
@@ -485,6 +488,91 @@ def admin_stats():
         'total': total, 'new': new, 'enrolled': enrolled,
         'reviewed': reviewed, 'rejected': rejected
     })
+
+
+# ── Applicant Status Portal ──────────────────────────────────────────────────
+
+@app.route('/status')
+def status_page():
+    return send_from_directory('static', 'status.html')
+
+
+@app.route('/api/status/login', methods=['POST'])
+def status_login():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    medicaid_id = (data.get('medicaid_id', '') or '').strip().upper()
+    dob = (data.get('date_of_birth', '') or '').strip()
+
+    if not medicaid_id or not dob:
+        return jsonify({'error': 'Please enter both your Medicaid ID and Date of Birth'}), 400
+
+    conn = get_db()
+    app_record = db_fetchone(conn,
+        'SELECT * FROM applications WHERE medicaid_id = ? AND date_of_birth = ?',
+        (medicaid_id, dob)
+    )
+    conn.close()
+
+    if not app_record:
+        return jsonify({'error': 'No application found with this Medicaid ID and Date of Birth. Please check your information and try again.'}), 404
+
+    session['applicant_id'] = app_record['id']
+    return jsonify({'success': True})
+
+
+@app.route('/api/status/application')
+def get_applicant_status():
+    app_id = session.get('applicant_id')
+    if not app_id:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    conn = get_db()
+    a = db_fetchone(conn, 'SELECT * FROM applications WHERE id = ?', (app_id,))
+    conn.close()
+
+    if not a:
+        return jsonify({'error': 'Application not found'}), 404
+
+    # Parse JSON fields
+    try:
+        a['health_categories'] = json.loads(a['health_categories'] or '[]')
+    except (json.JSONDecodeError, TypeError):
+        a['health_categories'] = []
+    try:
+        a['household_members'] = json.loads(a['household_members'] or '[]')
+    except (json.JSONDecodeError, TypeError):
+        a['household_members'] = []
+
+    # Only return safe fields (not admin notes)
+    safe = {
+        'id': a['id'],
+        'first_name': a['first_name'],
+        'last_name': a['last_name'],
+        'date_of_birth': a['date_of_birth'],
+        'medicaid_id': a['medicaid_id'],
+        'cell_phone': a['cell_phone'],
+        'email': a['email'],
+        'street_address': a['street_address'],
+        'apt_unit': a.get('apt_unit'),
+        'city': a['city'],
+        'state': a['state'],
+        'zipcode': a['zipcode'],
+        'health_categories': a['health_categories'],
+        'household_members': a['household_members'],
+        'status': a['status'],
+        'created_at': str(a['created_at']) if a.get('created_at') else None,
+        'updated_at': str(a['updated_at']) if a.get('updated_at') else None,
+    }
+    return jsonify(safe)
+
+
+@app.route('/api/status/logout', methods=['POST'])
+def status_logout():
+    session.pop('applicant_id', None)
+    return jsonify({'success': True})
 
 
 # ── QR Code ──────────────────────────────────────────────────────────────────
