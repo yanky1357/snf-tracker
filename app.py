@@ -490,6 +490,57 @@ def admin_stats():
     })
 
 
+@app.route('/api/admin/send-status-email', methods=['POST'])
+@require_admin
+def send_status_email_all():
+    """Send a status portal notification email to all applicants."""
+    conn = get_db()
+    apps = db_fetchall(conn, 'SELECT id, first_name, email, status FROM applications WHERE email IS NOT NULL')
+    conn.close()
+
+    count = 0
+    for a in apps:
+        if a.get('email'):
+            send_email(
+                a['email'],
+                'NourishNY — Track Your Application Status Online!',
+                f'''
+                <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+                    <div style="background:#2D5016;color:white;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
+                        <h2 style="margin:0;">NourishNY</h2>
+                        <p style="margin:4px 0 0;opacity:0.9;">Free Healthy Meals Delivered to Your Door</p>
+                    </div>
+                    <div style="background:#fff;padding:24px;border:1px solid #ddd;border-top:none;border-radius:0 0 8px 8px;">
+                        <h3 style="color:#2D5016;">Hi {a["first_name"]},</h3>
+                        <p>Great news! You can now <strong>track your application status online</strong> anytime.</p>
+                        <p>Just use your <strong>Medicaid ID</strong> and <strong>Date of Birth</strong> to log in and see where your application stands.</p>
+
+                        <div style="text-align:center;margin:24px 0;">
+                            <a href="{SITE_URL}/status" style="background:#2D5016;color:white;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;display:inline-block;">Check Your Status</a>
+                        </div>
+
+                        <div style="background:#FAF9F6;border-radius:8px;padding:16px;margin:16px 0;">
+                            <h4 style="color:#2D5016;margin-top:0;">How to check:</h4>
+                            <p style="margin:8px 0;"><strong>1.</strong> Go to <a href="{SITE_URL}/status" style="color:#2D5016;">{SITE_URL}/status</a></p>
+                            <p style="margin:8px 0;"><strong>2.</strong> Enter your Medicaid ID</p>
+                            <p style="margin:8px 0;"><strong>3.</strong> Enter your Date of Birth</p>
+                            <p style="margin:8px 0;"><strong>4.</strong> See your application status instantly!</p>
+                        </div>
+
+                        <p style="color:#888;font-size:14px;">If you have any questions, don't hesitate to reach out.</p>
+                        <p style="color:#2D5016;font-weight:600;">— The NourishNY Team</p>
+                    </div>
+                    <div style="text-align:center;padding:16px;color:#888;font-size:12px;">
+                        NourishNY &mdash; An SCN Approved Vendor serving New York families.
+                    </div>
+                </div>
+                '''
+            )
+            count += 1
+
+    return jsonify({'success': True, 'emails_sent': count})
+
+
 # ── Applicant Status Portal ──────────────────────────────────────────────────
 
 @app.route('/status')

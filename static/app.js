@@ -375,6 +375,27 @@ if (loginForm) {
     document.getElementById('detailModal').style.display = 'none';
   };
 
+  window.sendStatusEmails = async () => {
+    const btn = document.getElementById('sendEmailsBtn');
+    if (!confirm('This will send an email to ALL applicants telling them they can check their status online. Continue?')) return;
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    try {
+      const res = await fetch('/api/admin/send-status-email', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        alert(`Done! Sent ${data.emails_sent} emails.`);
+      } else {
+        alert('Error: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Network error. Please try again.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Email All: Status Portal';
+    }
+  };
+
   window.adminLogout = async () => {
     await fetch('/api/admin/logout', { method: 'POST' });
     loginView.style.display = '';
