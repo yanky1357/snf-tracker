@@ -1,400 +1,503 @@
-/* ═══════════════════════════════════════════════════════════════════════════ */
-/*  NourishNY — Frontend Logic                                                */
-/* ═══════════════════════════════════════════════════════════════════════════ */
+/* ── State ────────────────────────────────────────────────────────────────── */
+const state = {
+  query:     '',
+  filterState: '',
+  filterType:  '',
+  page:      1,
+  totalPages: 1,
+  mapStatePage: 1,
+  mapStateTotalPages: 1,
+  selectedMapState: null,
+};
 
-// ── Application Form ────────────────────────────────────────────────────────
+/* ── Badge helpers ─────────────────────────────────────────────────────────── */
+const BADGE_CLASS = {
+  'Private Equity':  'pe',
+  'LLC':             'llc',
+  'Corporation':     'corp',
+  'Holding Co.':     'holding',
+  'Investment Firm': 'investment',
+  'Non-Profit':      'nonprofit',
+  'REIT':            'reit',
+  'Trust/Trustee':   'trust',
+  'For-Profit':      'forprofit',
+  'Chain Office':    'chain',
+  'Mgmt. Co.':       'mgmt',
+};
 
-const appForm = document.getElementById('applicationForm');
-if (appForm) {
-  // Dynamic household members
-  const numSelect = document.getElementById('num_members');
-  const membersDiv = document.getElementById('householdMembers');
-
-  numSelect.addEventListener('change', () => {
-    const count = parseInt(numSelect.value);
-    membersDiv.innerHTML = '';
-    for (let i = 1; i <= count; i++) {
-      const block = document.createElement('div');
-      block.className = 'member-block';
-      block.innerHTML = `
-        <h4>Member ${i}</h4>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>First Name <span class="req">*</span></label>
-            <input type="text" class="member-first" placeholder="First name" required />
-          </div>
-          <div class="form-group">
-            <label>Last Name <span class="req">*</span></label>
-            <input type="text" class="member-last" placeholder="Last name" required />
-          </div>
-          <div class="form-group">
-            <label>Date of Birth <span class="req">*</span></label>
-            <input type="text" class="member-dob" placeholder="MM/DD/YYYY" required />
-          </div>
-          <div class="form-group">
-            <label>Medicaid ID <span class="req">*</span></label>
-            <input type="text" class="member-medicaid" placeholder="AB12345C" maxlength="8" required />
-          </div>
-        </div>
-      `;
-      membersDiv.appendChild(block);
-    }
-  });
-
-  // Submit handler
-  appForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const errDiv = document.getElementById('formError');
-    const submitBtn = document.getElementById('submitBtn');
-    errDiv.style.display = 'none';
-
-    // Clear previous error styles
-    appForm.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
-
-    // Gather data
-    const get = (id) => document.getElementById(id)?.value?.trim() || '';
-
-    // Validate required fields
-    const requiredFields = [
-      'first_name', 'last_name', 'date_of_birth', 'medicaid_id',
-      'cell_phone', 'email', 'street_address', 'city', 'zipcode',
-      'is_employed', 'spouse_employed', 'has_wic', 'has_snap', 'is_new_applicant'
-    ];
-
-    let hasError = false;
-    for (const f of requiredFields) {
-      const el = document.getElementById(f);
-      if (!el || !el.value.trim()) {
-        if (el) el.classList.add('error');
-        hasError = true;
-      }
-    }
-
-    if (hasError) {
-      errDiv.textContent = 'Please fill in all required fields.';
-      errDiv.style.display = 'block';
-      errDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-
-    // Validate Medicaid ID
-    const mid = get('medicaid_id').toUpperCase();
-    if (!/^[A-Z]{2}\d{5}[A-Z]$/.test(mid)) {
-      document.getElementById('medicaid_id').classList.add('error');
-      errDiv.textContent = 'Invalid Medicaid ID format. Must be 2 letters + 5 numbers + 1 letter (e.g., AB12345C).';
-      errDiv.style.display = 'block';
-      errDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-
-    // Gather health categories
-    const healthCategories = [];
-    appForm.querySelectorAll('input[name="health_categories"]:checked').forEach(cb => {
-      healthCategories.push(cb.value);
-    });
-
-    // Gather household members
-    const members = [];
-    document.querySelectorAll('.member-block').forEach(block => {
-      members.push({
-        first_name: block.querySelector('.member-first')?.value?.trim() || '',
-        last_name: block.querySelector('.member-last')?.value?.trim() || '',
-        date_of_birth: block.querySelector('.member-dob')?.value?.trim() || '',
-        medicaid_id: block.querySelector('.member-medicaid')?.value?.trim() || ''
-      });
-    });
-
-    const payload = {
-      first_name: get('first_name'),
-      last_name: get('last_name'),
-      date_of_birth: get('date_of_birth'),
-      medicaid_id: mid,
-      cell_phone: get('cell_phone'),
-      home_phone: get('home_phone'),
-      email: get('email'),
-      street_address: get('street_address'),
-      apt_unit: get('apt_unit'),
-      city: get('city'),
-      state: get('state'),
-      zipcode: get('zipcode'),
-      health_categories: healthCategories,
-      is_employed: get('is_employed'),
-      spouse_employed: get('spouse_employed'),
-      has_wic: get('has_wic'),
-      has_snap: get('has_snap'),
-      food_allergies: get('food_allergies'),
-      is_new_applicant: get('is_new_applicant'),
-      household_members: members
-    };
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Submitting...';
-
-    try {
-      const res = await fetch('/api/apply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        window.location.href = '/thank-you';
-      } else {
-        errDiv.textContent = data.error || 'Something went wrong. Please try again.';
-        errDiv.style.display = 'block';
-        errDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    } catch (err) {
-      errDiv.textContent = 'Network error. Please check your connection and try again.';
-      errDiv.style.display = 'block';
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Submit Application \u2192';
-    }
-  });
+function makeBadge(label) {
+  const cls = BADGE_CLASS[label] || 'default';
+  return `<span class="badge badge-${cls}">${label}</span>`;
 }
 
+function badgeRow(typesStr) {
+  if (!typesStr) return '';
+  return typesStr.split(',').filter(Boolean).map(makeBadge).join('');
+}
 
-// ── Admin Dashboard ─────────────────────────────────────────────────────────
+/* ── API calls ─────────────────────────────────────────────────────────────── */
+async function apiFetch(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
 
-const loginForm = document.getElementById('loginForm');
-if (loginForm) {
-  const loginView = document.getElementById('loginView');
-  const dashView = document.getElementById('dashboardView');
-  const logoutBtn = document.getElementById('logoutBtn');
-  let currentPage = 1;
-
-  // Login
-  loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const pw = document.getElementById('adminPassword').value;
-    const errDiv = document.getElementById('loginError');
-
-    try {
-      const res = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: pw })
-      });
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        loginView.style.display = 'none';
-        dashView.style.display = 'block';
-        logoutBtn.style.display = 'inline-block';
-        loadStats();
-        loadApplications();
-      } else {
-        errDiv.textContent = 'Invalid password.';
-        errDiv.style.display = 'block';
-      }
-    } catch (err) {
-      errDiv.textContent = 'Network error.';
-      errDiv.style.display = 'block';
-    }
+/* ── Tab switching ─────────────────────────────────────────────────────────── */
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => {
+      p.classList.remove('active');
+      p.hidden = true;
+    });
+    btn.classList.add('active');
+    const panel = document.getElementById(`tab-${tab}`);
+    panel.hidden = false;
+    panel.classList.add('active');
+    if (tab === 'map') initMap();
   });
+});
 
-  // Search and filter
-  const searchInput = document.getElementById('searchInput');
-  const statusFilter = document.getElementById('statusFilter');
-  let searchTimeout;
+/* ── Search ────────────────────────────────────────────────────────────────── */
+const searchInput = document.getElementById('search-input');
+const clearBtn    = document.getElementById('clear-btn');
+const filterState = document.getElementById('filter-state');
+const filterType  = document.getElementById('filter-type');
 
-  searchInput.addEventListener('input', () => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => { currentPage = 1; loadApplications(); }, 400);
-  });
+let debounceTimer = null;
+searchInput.addEventListener('input', () => {
+  clearBtn.hidden = searchInput.value.length === 0;
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    state.page = 1;
+    performSearch();
+  }, 400);
+});
 
-  statusFilter.addEventListener('change', () => { currentPage = 1; loadApplications(); });
+searchInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { clearTimeout(debounceTimer); state.page = 1; performSearch(); }
+});
 
-  async function loadStats() {
-    try {
-      const res = await fetch('/api/admin/stats');
-      const data = await res.json();
-      document.getElementById('statTotal').textContent = data.total;
-      document.getElementById('statNew').textContent = data.new;
-      document.getElementById('statReviewed').textContent = data.reviewed;
-      document.getElementById('statEnrolled').textContent = data.enrolled;
-      document.getElementById('statRejected').textContent = data.rejected;
-    } catch (err) {
-      console.error('Failed to load stats', err);
-    }
-  }
+clearBtn.addEventListener('click', () => {
+  searchInput.value = '';
+  clearBtn.hidden = true;
+  state.page = 1;
+  performSearch();
+});
 
-  async function loadApplications() {
-    const search = searchInput.value.trim();
-    const status = statusFilter.value;
-    const params = new URLSearchParams({ page: currentPage });
-    if (search) params.set('search', search);
-    if (status) params.set('status', status);
+filterState.addEventListener('change', () => { state.page = 1; performSearch(); });
+filterType.addEventListener('change',  () => { state.page = 1; performSearch(); });
 
-    try {
-      const res = await fetch(`/api/admin/applications?${params}`);
-      if (res.status === 401) {
-        loginView.style.display = '';
-        dashView.style.display = 'none';
-        logoutBtn.style.display = 'none';
-        return;
-      }
-      const data = await res.json();
-      renderTable(data.applications);
-      renderPagination(data.page, data.pages);
-    } catch (err) {
-      console.error('Failed to load applications', err);
-    }
-  }
+document.getElementById('prev-btn').addEventListener('click', () => {
+  if (state.page > 1) { state.page--; performSearch(false); }
+});
+document.getElementById('next-btn').addEventListener('click', () => {
+  if (state.page < state.totalPages) { state.page++; performSearch(false); }
+});
 
-  function renderTable(apps) {
-    const tbody = document.getElementById('appTableBody');
-    if (!apps.length) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#888;padding:32px;">No applications found.</td></tr>';
+async function performSearch(scrollTop = true) {
+  const q     = searchInput.value.trim();
+  const sState = filterState.value;
+  const sType  = filterType.value;
+
+  const welcome = document.getElementById('welcome');
+  const resultsHeader = document.getElementById('results-header');
+  const resultsList   = document.getElementById('results-list');
+  const pagination    = document.getElementById('pagination');
+
+  // Show loading in list
+  welcome.hidden = true;
+  resultsHeader.hidden = true;
+  pagination.hidden = true;
+  resultsList.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Searching...</span></div>';
+
+  const params = new URLSearchParams({ page: state.page });
+  if (q)      params.set('q', q);
+  if (sState) params.set('state', sState);
+  if (sType)  params.set('owner_type', sType);
+
+  try {
+    const data = await apiFetch(`/api/search?${params}`);
+    state.totalPages = data.total_pages;
+
+    if (data.facilities.length === 0) {
+      resultsList.innerHTML = `
+        <div class="empty-state">
+          <h3>No facilities found</h3>
+          <p>Try a different search term or remove a filter.</p>
+        </div>`;
+      resultsHeader.hidden = false;
+      document.getElementById('results-count').textContent =
+        `0 results${q ? ` for "${q}"` : ''}`;
       return;
     }
 
-    tbody.innerHTML = apps.map(a => `
-      <tr>
-        <td>#${a.id}</td>
-        <td><strong>${esc(a.first_name)} ${esc(a.last_name)}</strong></td>
-        <td>${esc(a.medicaid_id)}</td>
-        <td>${esc(a.cell_phone)}</td>
-        <td>${esc(a.city)}</td>
-        <td><span class="badge badge-${a.status}">${a.status}</span></td>
-        <td>${formatDate(a.created_at)}</td>
-        <td><button class="btn-view" onclick="viewApplication(${a.id})">View</button></td>
-      </tr>
+    // Results header
+    const from  = (state.page - 1) * data.per_page + 1;
+    const to    = Math.min(state.page * data.per_page, data.total);
+    resultsHeader.hidden = false;
+    document.getElementById('results-count').textContent =
+      `Showing ${from}–${to} of ${data.total.toLocaleString()} facilities${q ? ` matching "${q}"` : ''}`;
+
+    // Cards
+    resultsList.innerHTML = data.facilities.map(f => `
+      <div class="result-card">
+        <div class="result-main">
+          <div class="result-name" title="${esc(f.organization_name)}">${esc(f.organization_name)}</div>
+          <div class="result-meta">
+            <span>${f.facility_state || 'Unknown state'}</span>
+            <span>${f.owner_count} ownership record${f.owner_count !== 1 ? 's' : ''}</span>
+            <span>${f.enrollment_id}</span>
+          </div>
+          <div class="badge-row">${badgeRow(f.owner_types)}</div>
+        </div>
+        <button class="chain-btn" data-eid="${esc(f.enrollment_id)}"
+                data-name="${esc(f.organization_name)}">
+          View Ownership Chain
+        </button>
+      </div>
     `).join('');
+
+    // Attach chain button handlers
+    resultsList.querySelectorAll('.chain-btn').forEach(btn => {
+      btn.addEventListener('click', () => openChainModal(btn.dataset.eid, btn.dataset.name));
+    });
+
+    // Pagination
+    pagination.hidden = data.total_pages <= 1;
+    document.getElementById('prev-btn').disabled = state.page <= 1;
+    document.getElementById('next-btn').disabled = state.page >= state.totalPages;
+    document.getElementById('page-info').textContent =
+      `Page ${state.page} of ${state.totalPages}`;
+
+    if (scrollTop) window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (err) {
+    resultsList.innerHTML = `<div class="empty-state"><h3>Error loading results</h3><p>${err.message}</p></div>`;
   }
-
-  function renderPagination(page, pages) {
-    const div = document.getElementById('pagination');
-    if (pages <= 1) { div.innerHTML = ''; return; }
-    let html = '';
-    for (let i = 1; i <= pages; i++) {
-      html += `<button class="page-btn ${i === page ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
-    }
-    div.innerHTML = html;
-  }
-
-  window.goToPage = (p) => { currentPage = p; loadApplications(); };
-
-  window.viewApplication = async (id) => {
-    try {
-      const res = await fetch(`/api/admin/applications/${id}`);
-      const a = await res.json();
-      if (res.status === 401) return;
-
-      const healthTags = (a.health_categories || [])
-        .map(h => `<span class="detail-tag">${esc(h)}</span>`).join('') || '<span style="color:#888;">None selected</span>';
-
-      const membersHtml = (a.household_members || []).map((m, i) => `
-        <div class="detail-grid" style="margin-bottom:8px;">
-          <div class="detail-item"><label>Name</label><span>${esc(m.first_name)} ${esc(m.last_name)}</span></div>
-          <div class="detail-item"><label>DOB</label><span>${esc(m.date_of_birth)}</span></div>
-          <div class="detail-item"><label>Medicaid ID</label><span>${esc(m.medicaid_id)}</span></div>
-        </div>
-      `).join('') || '<p style="color:#888;">No additional members</p>';
-
-      document.getElementById('detailContent').innerHTML = `
-        <h3 style="margin-bottom:4px;">${esc(a.first_name)} ${esc(a.last_name)}</h3>
-        <p style="color:#888;margin-bottom:16px;">Application #${a.id} &mdash; ${formatDate(a.created_at)}</p>
-
-        <div class="detail-section-title" style="border:none;padding:0;margin-top:0;">Personal Information</div>
-        <div class="detail-grid">
-          <div class="detail-item"><label>Date of Birth</label><span>${esc(a.date_of_birth)}</span></div>
-          <div class="detail-item"><label>Medicaid ID</label><span>${esc(a.medicaid_id)}</span></div>
-        </div>
-
-        <div class="detail-section-title">Contact</div>
-        <div class="detail-grid">
-          <div class="detail-item"><label>Cell Phone</label><span>${esc(a.cell_phone)}</span></div>
-          <div class="detail-item"><label>Home Phone</label><span>${esc(a.home_phone || 'N/A')}</span></div>
-          <div class="detail-item"><label>Email</label><span>${esc(a.email)}</span></div>
-        </div>
-
-        <div class="detail-section-title">Address</div>
-        <div class="detail-grid">
-          <div class="detail-item"><label>Street</label><span>${esc(a.street_address)}${a.apt_unit ? ', ' + esc(a.apt_unit) : ''}</span></div>
-          <div class="detail-item"><label>City/State/Zip</label><span>${esc(a.city)}, ${esc(a.state)} ${esc(a.zipcode)}</span></div>
-        </div>
-
-        <div class="detail-section-title">Health Categories</div>
-        <div class="detail-tags">${healthTags}</div>
-
-        <div class="detail-section-title">Benefits & Employment</div>
-        <div class="detail-grid">
-          <div class="detail-item"><label>Employed</label><span>${esc(a.is_employed)}</span></div>
-          <div class="detail-item"><label>Spouse Employed</label><span>${esc(a.spouse_employed)}</span></div>
-          <div class="detail-item"><label>WIC</label><span>${esc(a.has_wic)}</span></div>
-          <div class="detail-item"><label>SNAP</label><span>${esc(a.has_snap)}</span></div>
-          <div class="detail-item"><label>Food Allergies</label><span>${esc(a.food_allergies || 'None')}</span></div>
-          <div class="detail-item"><label>New Applicant</label><span>${esc(a.is_new_applicant)}</span></div>
-        </div>
-
-        <div class="detail-section-title">Household Members</div>
-        ${membersHtml}
-
-        <div class="status-form">
-          <h4>Update Status</h4>
-          <select id="modalStatus">
-            <option value="new" ${a.status === 'new' ? 'selected' : ''}>New</option>
-            <option value="reviewed" ${a.status === 'reviewed' ? 'selected' : ''}>Reviewed</option>
-            <option value="enrolled" ${a.status === 'enrolled' ? 'selected' : ''}>Enrolled</option>
-            <option value="rejected" ${a.status === 'rejected' ? 'selected' : ''}>Rejected</option>
-          </select>
-          <textarea id="modalNotes" placeholder="Admin notes...">${esc(a.admin_notes || '')}</textarea>
-          <button class="btn" onclick="updateStatus(${a.id})">Save Changes</button>
-        </div>
-      `;
-
-      document.getElementById('detailModal').style.display = 'flex';
-    } catch (err) {
-      console.error('Failed to load application', err);
-    }
-  };
-
-  window.updateStatus = async (id) => {
-    const status = document.getElementById('modalStatus').value;
-    const notes = document.getElementById('modalNotes').value;
-
-    try {
-      await fetch(`/api/admin/applications/${id}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, admin_notes: notes })
-      });
-      closeModal();
-      loadStats();
-      loadApplications();
-    } catch (err) {
-      console.error('Failed to update status', err);
-    }
-  };
-
-  window.closeModal = () => {
-    document.getElementById('detailModal').style.display = 'none';
-  };
-
-  window.adminLogout = async () => {
-    await fetch('/api/admin/logout', { method: 'POST' });
-    loginView.style.display = '';
-    dashView.style.display = 'none';
-    logoutBtn.style.display = 'none';
-    document.getElementById('adminPassword').value = '';
-  };
 }
-
-// ── Utilities ───────────────────────────────────────────────────────────────
 
 function esc(str) {
-  if (!str) return '';
-  const div = document.createElement('div');
-  div.textContent = String(str);
-  return div.innerHTML;
+  return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+/* ── State filter population ─────────────────────────────────────────────── */
+async function populateStateFilter() {
+  try {
+    const states = await apiFetch('/api/states');
+    const US_NAMES = {
+      AL:'Alabama', AK:'Alaska', AZ:'Arizona', AR:'Arkansas', CA:'California',
+      CO:'Colorado', CT:'Connecticut', DE:'Delaware', DC:'D.C.', FL:'Florida',
+      GA:'Georgia', HI:'Hawaii', ID:'Idaho', IL:'Illinois', IN:'Indiana',
+      IA:'Iowa', KS:'Kansas', KY:'Kentucky', LA:'Louisiana', ME:'Maine',
+      MD:'Maryland', MA:'Massachusetts', MI:'Michigan', MN:'Minnesota',
+      MS:'Mississippi', MO:'Missouri', MT:'Montana', NE:'Nebraska', NV:'Nevada',
+      NH:'New Hampshire', NJ:'New Jersey', NM:'New Mexico', NY:'New York',
+      NC:'North Carolina', ND:'North Dakota', OH:'Ohio', OK:'Oklahoma',
+      OR:'Oregon', PA:'Pennsylvania', RI:'Rhode Island', SC:'South Carolina',
+      SD:'South Dakota', TN:'Tennessee', TX:'Texas', UT:'Utah', VT:'Vermont',
+      VA:'Virginia', WA:'Washington', WV:'West Virginia', WI:'Wisconsin', WY:'Wyoming',
+    };
+    const opts = states.map(s =>
+      `<option value="${s.state}">${US_NAMES[s.state] || s.state} (${s.count.toLocaleString()})</option>`
+    ).join('');
+    filterState.innerHTML = '<option value="">All States</option>' + opts;
+  } catch (_) {}
 }
+
+/* ── Ownership Chain Modal ────────────────────────────────────────────────── */
+const modal     = document.getElementById('chain-modal');
+const modalTitle= document.getElementById('modal-title');
+const modalState= document.getElementById('modal-state-badge');
+const chainTree = document.getElementById('chain-tree');
+const chainLoad = document.getElementById('chain-loading');
+
+function openChainModal(enrollmentId, facilityName) {
+  modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+  modalTitle.textContent = facilityName || enrollmentId;
+  modalState.textContent = '';
+  chainTree.innerHTML = '';
+  chainLoad.style.display = 'flex';
+  loadChain(enrollmentId);
+}
+
+function closeModal() {
+  modal.hidden = true;
+  document.body.style.overflow = '';
+}
+
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('modal-backdrop').addEventListener('click', closeModal);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+async function loadChain(enrollmentId) {
+  try {
+    const data = await apiFetch(`/api/chain/${encodeURIComponent(enrollmentId)}`);
+    chainLoad.style.display = 'none';
+
+    if (data.state) {
+      modalState.textContent = `State: ${data.state}`;
+    }
+
+    if (!data.owners || data.owners.length === 0) {
+      chainTree.innerHTML = '<div class="no-chain">No ownership records found for this facility.</div>';
+      return;
+    }
+
+    chainTree.innerHTML = '';
+    const rootLabel = document.createElement('div');
+    rootLabel.className = 'chain-root-label';
+    rootLabel.textContent = 'Ownership structure (facility → owners → parent companies)';
+    chainTree.appendChild(rootLabel);
+
+    const facilityEl = document.createElement('div');
+    facilityEl.className = 'chain-facility';
+    facilityEl.textContent = data.display_name;
+    chainTree.appendChild(facilityEl);
+
+    const group = buildOwnerGroup(data.owners, 0);
+    chainTree.appendChild(group);
+  } catch (err) {
+    chainLoad.style.display = 'none';
+    chainTree.innerHTML = `<div class="no-chain">Error loading chain: ${err.message}</div>`;
+  }
+}
+
+function buildOwnerGroup(owners, depth) {
+  const group = document.createElement('div');
+  group.className = 'chain-group';
+
+  // Separate ownership-interest rows from management/officer rows
+  const ownershipRoles = owners.filter(o =>
+    /ownership|partnership|trustee|interest/i.test(o.role) || o.children.length > 0
+  );
+  const otherRoles = owners.filter(o =>
+    !/ownership|partnership|trustee|interest/i.test(o.role) && o.children.length === 0
+  );
+  const sorted = [...ownershipRoles, ...otherRoles];
+
+  sorted.forEach(owner => {
+    const node = document.createElement('div');
+    node.className = 'chain-node';
+
+    const card = document.createElement('div');
+    card.className = 'chain-node-card' + (
+      !owner.owned_by_another && owner.children.length === 0 && depth > 0 ? ' ultimate' : ''
+    );
+
+    const nameRow = document.createElement('div');
+    nameRow.className = 'chain-node-name';
+    nameRow.textContent = owner.display_name;
+    if (owner.percentage && parseFloat(owner.percentage) > 0) {
+      const pct = document.createElement('span');
+      pct.className = 'chain-node-pct';
+      pct.textContent = `${parseFloat(owner.percentage).toFixed(0)}%`;
+      nameRow.appendChild(pct);
+    }
+    card.appendChild(nameRow);
+
+    if (owner.role) {
+      const roleEl = document.createElement('div');
+      roleEl.className = 'chain-node-role';
+      roleEl.textContent = owner.role + (owner.state ? ` · ${owner.state}` : '');
+      card.appendChild(roleEl);
+    }
+
+    if (owner.types && owner.types.length > 0) {
+      const badges = document.createElement('div');
+      badges.className = 'badge-row';
+      badges.style.marginTop = '.3rem';
+      badges.innerHTML = owner.types.map(makeBadge).join('');
+      card.appendChild(badges);
+    }
+
+    if (!owner.owned_by_another && owner.children.length === 0 && depth > 0) {
+      const ult = document.createElement('div');
+      ult.className = 'ultimate-label';
+      ult.textContent = 'Ultimate Owner';
+      card.appendChild(ult);
+    }
+
+    node.appendChild(card);
+
+    if (owner.children && owner.children.length > 0) {
+      const arrow = document.createElement('div');
+      arrow.className = 'chain-arrow';
+      arrow.textContent = 'Owned by:';
+      node.appendChild(arrow);
+      node.appendChild(buildOwnerGroup(owner.children, depth + 1));
+    }
+
+    group.appendChild(node);
+  });
+
+  return group;
+}
+
+/* ── Map ──────────────────────────────────────────────────────────────────── */
+let mapInitialized = false;
+
+const STATE_FIPS = {
+  '01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT',
+  '10':'DE','11':'DC','12':'FL','13':'GA','15':'HI','16':'ID','17':'IL',
+  '18':'IN','19':'IA','20':'KS','21':'KY','22':'LA','23':'ME','24':'MD',
+  '25':'MA','26':'MI','27':'MN','28':'MS','29':'MO','30':'MT','31':'NE',
+  '32':'NV','33':'NH','34':'NJ','35':'NM','36':'NY','37':'NC','38':'ND',
+  '39':'OH','40':'OK','41':'OR','42':'PA','44':'RI','45':'SC','46':'SD',
+  '47':'TN','48':'TX','49':'UT','50':'VT','51':'VA','53':'WA','54':'WV',
+  '55':'WI','56':'WY',
+};
+
+const STATE_NAMES = {
+  AL:'Alabama', AK:'Alaska', AZ:'Arizona', AR:'Arkansas', CA:'California',
+  CO:'Colorado', CT:'Connecticut', DE:'Delaware', DC:'Washington D.C.',
+  FL:'Florida', GA:'Georgia', HI:'Hawaii', ID:'Idaho', IL:'Illinois',
+  IN:'Indiana', IA:'Iowa', KS:'Kansas', KY:'Kentucky', LA:'Louisiana',
+  ME:'Maine', MD:'Maryland', MA:'Massachusetts', MI:'Michigan', MN:'Minnesota',
+  MS:'Mississippi', MO:'Missouri', MT:'Montana', NE:'Nebraska', NV:'Nevada',
+  NH:'New Hampshire', NJ:'New Jersey', NM:'New Mexico', NY:'New York',
+  NC:'North Carolina', ND:'North Dakota', OH:'Ohio', OK:'Oklahoma',
+  OR:'Oregon', PA:'Pennsylvania', RI:'Rhode Island', SC:'South Carolina',
+  SD:'South Dakota', TN:'Tennessee', TX:'Texas', UT:'Utah', VT:'Vermont',
+  VA:'Virginia', WA:'Washington', WV:'West Virginia', WI:'Wisconsin', WY:'Wyoming',
+};
+
+async function initMap() {
+  if (mapInitialized) return;
+  mapInitialized = true;
+
+  const svgEl   = document.getElementById('us-map');
+  const tooltip = document.getElementById('map-tooltip');
+
+  try {
+    const [statesData, usTopoJson] = await Promise.all([
+      apiFetch('/api/states'),
+      fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(r => r.json()),
+    ]);
+
+    const countByState = {};
+    statesData.forEach(d => { countByState[d.state] = d.count; });
+    const maxCount = Math.max(...Object.values(countByState));
+
+    const colorScale = d3.scaleSequentialLog(d3.interpolateBlues)
+      .domain([1, maxCount]);
+
+    const width  = 960;
+    const height = 600;
+
+    const svg = d3.select('#us-map')
+      .attr('viewBox', `0 0 ${width} ${height}`)
+      .attr('preserveAspectRatio', 'xMidYMid meet');
+
+    const projection = d3.geoAlbersUsa()
+      .scale(1300)
+      .translate([width / 2, height / 2]);
+
+    const path   = d3.geoPath().projection(projection);
+    const states = topojson.feature(usTopoJson, usTopoJson.objects.states);
+
+    svg.selectAll('path.map-state')
+      .data(states.features)
+      .join('path')
+      .attr('class', 'map-state')
+      .attr('d', path)
+      .attr('fill', d => {
+        const abbr  = STATE_FIPS[String(d.id).padStart(2, '0')];
+        const count = abbr && countByState[abbr];
+        return count ? colorScale(count) : '#e5e7eb';
+      })
+      .attr('stroke', '#fff')
+      .attr('stroke-width', .5)
+      .on('mousemove', (event, d) => {
+        const abbr  = STATE_FIPS[String(d.id).padStart(2, '0')];
+        const count = abbr && countByState[abbr];
+        const name  = abbr ? (STATE_NAMES[abbr] || abbr) : 'Unknown';
+        const rect  = svgEl.getBoundingClientRect();
+        tooltip.hidden = false;
+        tooltip.textContent = `${name}: ${count ? count.toLocaleString() + ' facilities' : 'No data'}`;
+        tooltip.style.left = (event.clientX - rect.left + 12) + 'px';
+        tooltip.style.top  = (event.clientY - rect.top  - 10) + 'px';
+      })
+      .on('mouseleave', () => { tooltip.hidden = true; })
+      .on('click', (event, d) => {
+        const abbr = STATE_FIPS[String(d.id).padStart(2, '0')];
+        if (!abbr || !countByState[abbr]) return;
+
+        svg.selectAll('path.map-state').classed('selected', false);
+        d3.select(event.currentTarget).classed('selected', true);
+
+        state.selectedMapState = abbr;
+        state.mapStatePage = 1;
+        loadStatePanel(abbr);
+      });
+
+    // State borders
+    svg.append('path')
+      .datum(topojson.mesh(usTopoJson, usTopoJson.objects.states, (a, b) => a !== b))
+      .attr('fill', 'none')
+      .attr('stroke', '#fff')
+      .attr('stroke-width', .5)
+      .attr('d', path);
+
+  } catch (err) {
+    document.getElementById('us-map').insertAdjacentHTML('afterend',
+      `<p style="color:#b91c1c;padding:1rem">Map failed to load: ${err.message}</p>`);
+  }
+}
+
+/* ── State panel ─────────────────────────────────────────────────────────── */
+async function loadStatePanel(abbr, page = 1) {
+  const panel    = document.getElementById('state-panel');
+  const header   = document.getElementById('state-panel-header');
+  const list     = document.getElementById('state-facilities');
+  const pagDiv   = document.getElementById('state-pagination');
+  const pageInfo = document.getElementById('state-page-info');
+
+  panel.hidden = false;
+  header.textContent = `Loading ${STATE_NAMES[abbr] || abbr}...`;
+  list.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  pagDiv.hidden = true;
+
+  try {
+    const data = await apiFetch(`/api/states/${abbr}?page=${page}`);
+    state.mapStateTotalPages = data.total_pages;
+    state.mapStatePage = data.page;
+
+    header.textContent = `${STATE_NAMES[abbr] || abbr} — ${data.total.toLocaleString()} facilities`;
+
+    list.innerHTML = data.facilities.map(f => `
+      <div class="state-facility-item">
+        <span class="state-facility-name" data-eid="${esc(f.enrollment_id)}" data-name="${esc(f.organization_name)}">
+          ${esc(f.organization_name)}
+        </span>
+        <div class="state-facility-meta badge-row">${badgeRow(f.owner_types)}</div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.state-facility-name').forEach(el => {
+      el.addEventListener('click', () => openChainModal(el.dataset.eid, el.dataset.name));
+    });
+
+    if (data.total_pages > 1) {
+      pagDiv.hidden = false;
+      pageInfo.textContent = `${page} / ${data.total_pages}`;
+      document.getElementById('state-prev').disabled = page <= 1;
+      document.getElementById('state-next').disabled = page >= data.total_pages;
+    }
+  } catch (err) {
+    list.innerHTML = `<p style="color:#b91c1c;font-size:.8rem">${err.message}</p>`;
+  }
+}
+
+document.getElementById('state-prev').addEventListener('click', () => {
+  if (state.mapStatePage > 1)
+    loadStatePanel(state.selectedMapState, --state.mapStatePage);
+});
+document.getElementById('state-next').addEventListener('click', () => {
+  if (state.mapStatePage < state.mapStateTotalPages)
+    loadStatePanel(state.selectedMapState, ++state.mapStatePage);
+});
+
+/* ── Init ──────────────────────────────────────────────────────────────────── */
+populateStateFilter();
