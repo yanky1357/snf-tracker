@@ -3,7 +3,7 @@
   "appName": "ReefPilot",
   "webDir": "static/reef",
   "server": {
-    "url": "https://reefpilot.app",
+    "url": "https://www.reefpilotapp.com",
     "cleartext": false
   },
   "ios": {
