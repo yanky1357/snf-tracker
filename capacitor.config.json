@@ -1,0 +1,34 @@
+{
+  "appId": "com.reefpilot.app",
+  "appName": "ReefPilot",
+  "webDir": "static/reef",
+  "server": {
+    "url": "https://reefpilot.app",
+    "cleartext": false
+  },
+  "ios": {
+    "scheme": "ReefPilot",
+    "contentInset": "automatic",
+    "backgroundColor": "#0B1622",
+    "preferredContentMode": "mobile",
+    "allowsLinkPreview": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "launchShowDuration": 2000,
+      "backgroundColor": "#0B1622",
+      "showSpinner": false,
+      "splashImmersive": true,
+      "splashFullScreen": true
+    },
+    "StatusBar": {
+      "style": "LIGHT",
+      "backgroundColor": "#0D1B2A"
+    },
+    "Keyboard": {
+      "resize": "body",
+      "resizeOnFullScreen": true
+    }
+  }
+}

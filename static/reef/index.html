@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0D1B2A">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ReefPilot">
+    <link rel="apple-touch-icon" href="/static/reef/icons/icon-192.png">
+    <link rel="apple-touch-icon" sizes="1024x1024" href="/static/reef/icons/icon-1024.png">
+    <title>ReefPilot</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="/static/reef/css/reef-style.css?v=11">
+    <script src="/static/reef/js/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ── Loading Splash (shown during init) ──────────────────────────── -->
+<div id="loading-splash" class="screen" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+    <img src="/static/reef/icons/icon-192.png" alt="ReefPilot" width="72" height="72" style="border-radius:16px;animation:logoPulse 1.5s infinite;">
+    <p style="color:var(--text-secondary);font-size:14px;">Loading...</p>
+</div>
+
+<!-- ── Offline Banner ──────────────────────────────────────────────── -->
+<div id="offline-banner" class="offline-banner hidden" role="alert">
+    <span>You're offline. Some features may be unavailable.</span>
+</div>
+
+<!-- ── Auth Screen ──────────────────────────────────────────────────── -->
+<div id="auth-screen" class="screen hidden">
+    <div class="auth-container">
+        <div class="auth-logo">
+            <div class="logo-icon">
+                <img src="/static/reef/icons/icon-192.png" alt="ReefPilot" width="80" height="80" style="border-radius:18px;">
+            </div>
+            <h1>ReefPilot</h1>
+            <p class="auth-subtitle">AI-Powered Reef Tank Management</p>
+        </div>
+
+        <!-- Login Form -->
+        <form id="login-form" class="auth-form" onsubmit="return handleLogin(event)">
+            <div class="form-group">
+                <label for="login-email">Email</label>
+                <input type="email" id="login-email" required autocomplete="email" placeholder="you@example.com">
+            </div>
+            <div class="form-group">
+                <label for="login-password">Password</label>
+                <div class="password-input-wrap">
+                    <input type="password" id="login-password" required autocomplete="current-password" placeholder="Your password">
+                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('login-password', this)" aria-label="Show password">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="var(--text-secondary)"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div id="login-error" class="form-error"></div>
+            <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+            <p class="auth-link-row"><a href="#" onclick="showForgotPassword()">Forgot password?</a></p>
+            <p class="auth-switch">Don't have an account? <a href="#" onclick="showRegister()">Create one</a></p>
+        </form>
+
+        <!-- Register Form -->
+        <form id="register-form" class="auth-form hidden" onsubmit="return handleRegister(event)">
+            <div class="form-group">
+                <label for="reg-name">Display Name</label>
+                <input type="text" id="reg-name" placeholder="Captain Reef" autocomplete="name">
+            </div>
+            <div class="form-group">
+                <label for="reg-email">Email</label>
+                <input type="email" id="reg-email" required autocomplete="email" placeholder="you@example.com">
+            </div>
+            <div class="form-group">
+                <label for="reg-password">Password</label>
+                <div class="password-input-wrap">
+                    <input type="password" id="reg-password" required minlength="8" autocomplete="new-password" placeholder="Min 8 characters">
+                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('reg-password', this)" aria-label="Show password">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="var(--text-secondary)"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                    </button>
+                </div>
+                <div class="password-strength" id="password-strength"></div>
+            </div>
+            <div class="form-group consent-group">
+                <label class="consent-label">
+                    <input type="checkbox" id="reg-consent" required>
+                    <span>I agree to the <a href="/terms" target="_blank">Terms of Service</a> and <a href="/privacy" target="_blank">Privacy Policy</a></span>
+                </label>
+            </div>
+            <div id="register-error" class="form-error"></div>
+            <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+            <p class="auth-switch">Already have an account? <a href="#" onclick="showLogin()">Sign in</a></p>
+        </form>
+
+        <!-- Email Verification Form -->
+        <form id="verify-form" class="auth-form hidden" onsubmit="return handleVerifyEmail(event)">
+            <p class="auth-info">We sent a 6-digit code to <strong id="verify-email-display"></strong>. Enter it below to verify your email.</p>
+            <div class="form-group">
+                <label for="verify-code">Verification Code</label>
+                <input type="text" id="verify-code" required maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" class="input-code">
+            </div>
+            <div id="verify-error" class="form-error"></div>
+            <button type="submit" class="btn btn-primary btn-full">Verify Email</button>
+            <p class="auth-switch"><a href="#" onclick="resendVerification()">Resend code</a> &middot; <a href="#" onclick="showRegister()">Use different email</a></p>
+        </form>
+
+        <!-- Forgot Password Form -->
+        <form id="forgot-form" class="auth-form hidden" onsubmit="return handleForgotPassword(event)">
+            <p class="auth-info">Enter your email and we'll send you a code to reset your password.</p>
+            <div class="form-group">
+                <label for="forgot-email">Email</label>
+                <input type="email" id="forgot-email" required autocomplete="email" placeholder="you@example.com">
+            </div>
+            <div id="forgot-error" class="form-error"></div>
+            <button type="submit" class="btn btn-primary btn-full">Send Reset Code</button>
+            <p class="auth-switch"><a href="#" onclick="showLogin()">Back to sign in</a></p>
+        </form>
+
+        <!-- Reset Password Form -->
+        <form id="reset-form" class="auth-form hidden" onsubmit="return handleResetPassword(event)">
+            <p class="auth-info">Enter the code sent to <strong id="reset-email-display"></strong> and your new password.</p>
+            <div class="form-group">
+                <label for="reset-code">Reset Code</label>
+                <input type="text" id="reset-code" required maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" class="input-code">
+            </div>
+            <div class="form-group">
+                <label for="reset-password">New Password</label>
+                <div class="password-input-wrap">
+                    <input type="password" id="reset-password" required minlength="8" autocomplete="new-password" placeholder="Min 8 characters">
+                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('reset-password', this)" aria-label="Show password">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="var(--text-secondary)"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div id="reset-error" class="form-error"></div>
+            <button type="submit" class="btn btn-primary btn-full">Reset Password</button>
+            <p class="auth-switch"><a href="#" onclick="showLogin()">Back to sign in</a></p>
+        </form>
+    </div>
+</div>
+
+<!-- ── Onboarding Wizard ───────────────────────────────────────────── -->
+<div id="onboarding-screen" class="screen hidden">
+    <div class="wizard-container">
+        <!-- Progress Bar -->
+        <div class="wizard-progress-bar">
+            <div class="wizard-progress-fill" id="wizard-progress-fill"></div>
+        </div>
+        <div class="wizard-step-label" id="wizard-step-label">Step 1 of 10</div>
+
+        <!-- Wizard Header -->
+        <div class="wizard-header">
+            <div class="onboard-logo">
+                <img src="/static/reef/icons/icon-192.png" alt="ReefPilot" width="48" height="48" style="border-radius:12px;">
+            </div>
+            <h2 id="wizard-question">How big is your tank?</h2>
+        </div>
+
+        <!-- Step Content Area -->
+        <div class="wizard-steps-viewport" id="wizard-steps-viewport">
+
+            <!-- Step 1: Tank Size -->
+            <div class="wizard-step active" data-step="1">
+                <div class="wizard-option-grid">
+                    <button class="wizard-preset-btn" onclick="selectTankSize(10)">10 gal</button>
+                    <button class="wizard-preset-btn" onclick="selectTankSize(20)">20 gal</button>
+                    <button class="wizard-preset-btn" onclick="selectTankSize(40)">40 gal</button>
+                    <button class="wizard-preset-btn" onclick="selectTankSize(75)">75 gal</button>
+                    <button class="wizard-preset-btn" onclick="selectTankSize(120)">120 gal</button>
+                    <button class="wizard-preset-btn" onclick="selectTankSize(180)">180 gal</button>
+                </div>
+                <div class="wizard-custom-input">
+                    <div class="input-row">
+                        <input type="number" id="wizard-tank-size" placeholder="Custom size" min="1" class="input-large">
+                        <span class="input-suffix">gallons</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Sump -->
+            <div class="wizard-step" data-step="2">
+                <div class="wizard-card-grid">
+                    <button class="wizard-card" data-value="yes" onclick="selectSump(true, this)">
+                        <span class="wizard-card-emoji">&#x2705;</span>
+                        <span class="wizard-card-title">Yes</span>
+                    </button>
+                    <button class="wizard-card" data-value="no" onclick="selectSump(false, this)">
+                        <span class="wizard-card-emoji">&#x274C;</span>
+                        <span class="wizard-card-title">No</span>
+                    </button>
+                </div>
+                <div class="wizard-sump-size hidden" id="wizard-sump-size-wrap">
+                    <p class="wizard-hint" style="margin-top:20px;margin-bottom:8px">How big is your sump?</p>
+                    <div class="wizard-option-grid">
+                        <button class="wizard-preset-btn" onclick="selectSumpSize(10)">10 gal</button>
+                        <button class="wizard-preset-btn" onclick="selectSumpSize(20)">20 gal</button>
+                        <button class="wizard-preset-btn" onclick="selectSumpSize(30)">30 gal</button>
+                        <button class="wizard-preset-btn" onclick="selectSumpSize(40)">40 gal</button>
+                    </div>
+                    <div class="wizard-custom-input" style="margin-top:10px">
+                        <div class="input-row">
+                            <input type="number" id="wizard-sump-size" placeholder="Custom size" min="1" class="input-large">
+                            <span class="input-suffix">gallons</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Tank Type -->
+            <div class="wizard-step" data-step="3">
+                <div class="wizard-card-grid">
+                    <button class="wizard-card" data-value="fowlr" onclick="selectCard(this,'tank_type')">
+                        <span class="wizard-card-emoji">&#x1F41F;</span>
+                        <span class="wizard-card-title">Fish Only</span>
+                        <span class="wizard-card-sub">FOWLR</span>
+                    </button>
+                    <button class="wizard-card" data-value="soft_coral" onclick="selectCard(this,'tank_type')">
+                        <span class="wizard-card-emoji">&#x1F9CA;</span>
+                        <span class="wizard-card-title">Soft Corals</span>
+                        <span class="wizard-card-sub">Mushrooms, Leathers</span>
+                    </button>
+                    <button class="wizard-card" data-value="lps" onclick="selectCard(this,'tank_type')">
+                        <span class="wizard-card-emoji">&#x1FAB8;</span>
+                        <span class="wizard-card-title">LPS Dominant</span>
+                        <span class="wizard-card-sub">Hammers, Torches</span>
+                    </button>
+                    <button class="wizard-card" data-value="sps" onclick="selectCard(this,'tank_type')">
+                        <span class="wizard-card-emoji">&#x1FAB8;</span>
+                        <span class="wizard-card-title">SPS Dominant</span>
+                        <span class="wizard-card-sub">Acros, Montis</span>
+                    </button>
+                    <button class="wizard-card" data-value="mixed_reef" onclick="selectCard(this,'tank_type')">
+                        <span class="wizard-card-emoji">&#x1F30A;</span>
+                        <span class="wizard-card-title">Mixed Reef</span>
+                        <span class="wizard-card-sub">A bit of everything</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 4: Experience Level -->
+            <div class="wizard-step" data-step="4">
+                <div class="wizard-card-grid">
+                    <button class="wizard-card" data-value="beginner" onclick="selectCard(this,'experience')">
+                        <span class="wizard-card-emoji">&#x1F331;</span>
+                        <span class="wizard-card-title">Just Starting</span>
+                    </button>
+                    <button class="wizard-card" data-value="less_than_1" onclick="selectCard(this,'experience')">
+                        <span class="wizard-card-emoji">&#x1F4A7;</span>
+                        <span class="wizard-card-title">Less than 1 Year</span>
+                    </button>
+                    <button class="wizard-card" data-value="1_to_3" onclick="selectCard(this,'experience')">
+                        <span class="wizard-card-emoji">&#x1F30A;</span>
+                        <span class="wizard-card-title">1-3 Years</span>
+                    </button>
+                    <button class="wizard-card" data-value="3_plus" onclick="selectCard(this,'experience')">
+                        <span class="wizard-card-emoji">&#x1F3C6;</span>
+                        <span class="wizard-card-title">3+ Years</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 5: Fish Count -->
+            <div class="wizard-step" data-step="5">
+                <div class="wizard-number-input">
+                    <button class="wizard-pm-btn" onclick="adjustFishCount(-1)">-</button>
+                    <input type="number" id="wizard-fish-count" value="0" min="0" class="input-large wizard-num-field">
+                    <button class="wizard-pm-btn" onclick="adjustFishCount(1)">+</button>
+                </div>
+                <div class="wizard-option-grid" style="margin-top:16px">
+                    <button class="wizard-preset-btn" onclick="setFishCount(0)">0</button>
+                    <button class="wizard-preset-btn" onclick="setFishCount(2)">2</button>
+                    <button class="wizard-preset-btn" onclick="setFishCount(5)">5</button>
+                    <button class="wizard-preset-btn" onclick="setFishCount(10)">10+</button>
+                </div>
+            </div>
+
+            <!-- Step 6: Filtration -->
+            <div class="wizard-step" data-step="6">
+                <div class="wizard-card-grid">
+                    <button class="wizard-card wizard-multi" data-value="protein_skimmer" onclick="toggleMulti(this,'filtration')">
+                        <span class="wizard-card-check"></span>
+                        <span class="wizard-card-title">Protein Skimmer</span>
+                    </button>
+                    <button class="wizard-card wizard-multi" data-value="refugium" onclick="toggleMulti(this,'filtration')">
+                        <span class="wizard-card-check"></span>
+                        <span class="wizard-card-title">Refugium</span>
+                    </button>
+                    <button class="wizard-card wizard-multi" data-value="filter_socks" onclick="toggleMulti(this,'filtration')">
+                        <span class="wizard-card-check"></span>
+                        <span class="wizard-card-title">Filter Socks / Floss</span>
+                    </button>
+                    <button class="wizard-card wizard-multi" data-value="roller_mat" onclick="toggleMulti(this,'filtration')">
+                        <span class="wizard-card-check"></span>
+                        <span class="wizard-card-title">Roller Mat</span>
+                    </button>
+                    <button class="wizard-card wizard-multi" data-value="media_reactor" onclick="toggleMulti(this,'filtration')">
+                        <span class="wizard-card-check"></span>
+                        <span class="wizard-card-title">Media Reactor</span>
+                    </button>
+                    <button class="wizard-card wizard-multi" data-value="hob_filter" onclick="toggleMulti(this,'filtration')">
+                        <span class="wizard-card-check"></span>
+                        <span class="wizard-card-title">Hang-on-Back</span>
+                    </button>
+                    <button class="wizard-card wizard-multi" data-value="canister" onclick="toggleMulti(this,'filtration')">
+                        <span class="wizard-card-check"></span>
+                        <span class="wizard-card-title">Canister Filter</span>
+                    </button>
+                    <button class="wizard-card wizard-multi" data-value="live_rock" onclick="toggleMulti(this,'filtration')">
+                        <span class="wizard-card-check"></span>
+                        <span class="wizard-card-title">Live Rock Only</span>
+                    </button>
+                </div>
+                <p class="wizard-hint">Select all that apply</p>
+            </div>
+
+            <!-- Step 7: Dosing -->
+            <div class="wizard-step" data-step="7">
+                <div class="wizard-card-grid">
+                    <button class="wizard-card" data-value="none" onclick="selectCard(this,'dosing')">
+                        <span class="wizard-card-emoji">&#x274C;</span>
+                        <span class="wizard-card-title">No Dosing</span>
+                    </button>
+                    <button class="wizard-card" data-value="manual" onclick="selectCard(this,'dosing')">
+                        <span class="wizard-card-emoji">&#x1F9EA;</span>
+                        <span class="wizard-card-title">Manual Dosing</span>
+                    </button>
+                    <button class="wizard-card" data-value="auto" onclick="selectCard(this,'dosing')">
+                        <span class="wizard-card-emoji">&#x2699;&#xFE0F;</span>
+                        <span class="wizard-card-title">Auto Dosing Pump</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 8: Salt Brand -->
+            <div class="wizard-step" data-step="8">
+                <div class="wizard-salt-list" id="wizard-salt-list">
+                    <!-- Filled by JS from /reef/api/data/salt-brands -->
+                </div>
+            </div>
+
+            <!-- Step 9: Water Changes -->
+            <div class="wizard-step" data-step="9">
+                <div class="wizard-card-grid">
+                    <button class="wizard-card" data-value="10_weekly" onclick="selectCard(this,'water_change')">
+                        <span class="wizard-card-title">10% Weekly</span>
+                        <span class="wizard-card-sub">Recommended for SPS</span>
+                    </button>
+                    <button class="wizard-card" data-value="20_biweekly" onclick="selectCard(this,'water_change')">
+                        <span class="wizard-card-title">20% Biweekly</span>
+                        <span class="wizard-card-sub">Most Popular</span>
+                    </button>
+                    <button class="wizard-card" data-value="25_monthly" onclick="selectCard(this,'water_change')">
+                        <span class="wizard-card-title">25% Monthly</span>
+                        <span class="wizard-card-sub">Minimum</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 10: Maintenance Day -->
+            <div class="wizard-step" data-step="10">
+                <div class="wizard-day-row">
+                    <button class="wizard-day-btn" data-value="sunday" onclick="selectDay(this)" aria-label="Sunday">S</button>
+                    <button class="wizard-day-btn" data-value="monday" onclick="selectDay(this)" aria-label="Monday">M</button>
+                    <button class="wizard-day-btn" data-value="tuesday" onclick="selectDay(this)" aria-label="Tuesday">T</button>
+                    <button class="wizard-day-btn" data-value="wednesday" onclick="selectDay(this)" aria-label="Wednesday">W</button>
+                    <button class="wizard-day-btn" data-value="thursday" onclick="selectDay(this)" aria-label="Thursday">T</button>
+                    <button class="wizard-day-btn" data-value="friday" onclick="selectDay(this)" aria-label="Friday">F</button>
+                    <button class="wizard-day-btn" data-value="saturday" onclick="selectDay(this)" aria-label="Saturday">S</button>
+                </div>
+                <p class="wizard-hint">This sets when water changes, testing, and maintenance get scheduled.</p>
+            </div>
+
+            <!-- Step 11: Goals (multi-select) -->
+            <div class="wizard-step" data-step="11">
+                <div class="wizard-card-grid">
+                    <button class="wizard-card wizard-multi" data-value="keep_fish" onclick="toggleMulti(this,'goals')">
+                        <span class="wizard-card-check"></span>
+                        <span class="wizard-card-title">Keep Fish Healthy</span>
+                    </button>
+                    <button class="wizard-card wizard-multi" data-value="grow_soft" onclick="toggleMulti(this,'goals')">
+                        <span class="wizard-card-check"></span>
+                        <span class="wizard-card-title">Grow Soft Corals</span>
+                    </button>
+                    <button class="wizard-card wizard-multi" data-value="grow_lps" onclick="toggleMulti(this,'goals')">
+                        <span class="wizard-card-check"></span>
+                        <span class="wizard-card-title">Grow LPS</span>
+                    </button>
+                    <button class="wizard-card wizard-multi" data-value="grow_sps" onclick="toggleMulti(this,'goals')">
+                        <span class="wizard-card-check"></span>
+                        <span class="wizard-card-title">Grow SPS</span>
+                    </button>
+                    <button class="wizard-card wizard-multi" data-value="full_reef" onclick="toggleMulti(this,'goals')">
+                        <span class="wizard-card-check"></span>
+                        <span class="wizard-card-title">Build a Full Reef</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 12: Problems (optional) -->
+            <div class="wizard-step" data-step="12">
+                <div class="wizard-pills">
+                    <button class="wizard-pill" onclick="togglePill(this)">Algae</button>
+                    <button class="wizard-pill" onclick="togglePill(this)">Cyano</button>
+                    <button class="wizard-pill" onclick="togglePill(this)">Coral Bleaching</button>
+                    <button class="wizard-pill" onclick="togglePill(this)">Fish Disease</button>
+                    <button class="wizard-pill" onclick="togglePill(this)">Cloudy Water</button>
+                    <button class="wizard-pill" onclick="togglePill(this)">High Nitrates</button>
+                </div>
+                <textarea id="wizard-problems-text" placeholder="Describe any other issues (optional)..." rows="3"></textarea>
+            </div>
+
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="wizard-nav">
+            <button class="wizard-back-btn" id="wizard-back-btn" onclick="prevStep()">
+                <svg viewBox="0 0 24 24" width="20" height="20"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" fill="currentColor"/></svg>
+            </button>
+            <button class="btn btn-primary wizard-next-btn" id="wizard-next-btn" onclick="nextStep()">Continue</button>
+        </div>
+
+        <!-- Loading State (hidden by default) -->
+        <div class="wizard-loading hidden" id="wizard-loading">
+            <div class="wizard-loading-logo">
+                <img src="/static/reef/icons/icon-192.png" alt="ReefPilot" width="64" height="64" style="border-radius:14px;">
+            </div>
+            <h3>ReefPilot is analyzing your setup...</h3>
+            <p class="wizard-loading-sub">Building your custom care plan</p>
+        </div>
+
+        <!-- Plan Ready (hidden by default) -->
+        <div class="wizard-plan-ready hidden" id="wizard-plan-ready">
+            <div class="wizard-plan-icon">
+                <svg viewBox="0 0 48 48" width="56" height="56">
+                    <circle cx="24" cy="24" r="22" fill="#00B4D8" opacity="0.2"/>
+                    <path d="M18 24l4 4 8-8" stroke="#00B4D8" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <h2>Your Plan is Ready!</h2>
+            <div class="wizard-plan-summary" id="wizard-plan-summary">
+                <!-- Filled by JS -->
+            </div>
+            <button class="btn btn-primary btn-full wizard-go-btn" onclick="finishOnboarding()">Let's Go!</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Main App ─────────────────────────────────────────────────────── -->
+<div id="app-screen" class="screen hidden">
+
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-title-row">
+            <img src="/static/reef/icons/icon-192.png" alt="ReefPilot" width="28" height="28" style="border-radius:6px;">
+            <h1 class="header-title">ReefPilot</h1>
+        </div>
+        <div class="header-right">
+            <span class="header-user" id="header-user"></span>
+            <button class="header-tank-btn" onclick="switchTab('tank')" title="My Tank" aria-label="My Tank">
+                <svg viewBox="0 0 24 24" width="20" height="20"><path d="M2 4v16h20V4H2zm18 14H4V6h16v12z" fill="currentColor"/><path d="M7 17c1-2 2-4 5-4s4 2 5 4" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Tab Content -->
+    <main class="app-content">
+
+        <!-- Home Tab (Dashboard) -->
+        <section id="tab-home" class="tab-content hidden">
+            <div id="dashboard-content">
+                <!-- Tank Photo Hero -->
+                <div class="tank-hero" id="tank-hero">
+                    <img id="tank-hero-img" class="tank-hero-img" src="" alt="My Tank" />
+                    <div class="tank-hero-fade"></div>
+                    <button class="tank-hero-upload-btn" id="tank-hero-upload-btn" title="Set tank photo" aria-label="Upload tank photo">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4z"/><path d="M9 2 7.17 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3.17L15 2H9zm3 15a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/></svg>
+                    </button>
+                    <input type="file" id="tank-photo-input" accept="image/jpeg,image/png,image/webp" hidden />
+                </div>
+
+                <!-- Health Score -->
+                <div class="health-score-section">
+                    <div class="health-score-ring" id="health-score-ring">
+                        <svg viewBox="0 0 120 120" width="120" height="120">
+                            <circle cx="60" cy="60" r="52" fill="none" stroke="var(--border)" stroke-width="8"/>
+                            <circle cx="60" cy="60" r="52" fill="none" stroke-width="8" stroke-linecap="round"
+                                id="health-score-circle"
+                                stroke-dasharray="326.73"
+                                stroke-dashoffset="326.73"
+                                transform="rotate(-90 60 60)"/>
+                        </svg>
+                        <div class="health-score-value" id="health-score-value">--</div>
+                    </div>
+                    <div class="health-score-label" id="health-score-label">Tank Health</div>
+                </div>
+
+                <!-- Quick Param Chips -->
+                <div class="param-chips-scroll" id="param-chips-scroll">
+                    <!-- Filled by JS -->
+                </div>
+
+                <!-- Monthly Spending (moved up for visibility) -->
+                <div class="dashboard-section">
+                    <div class="cost-summary-card" id="cost-summary-card" onclick="switchTab('costs')" style="cursor:pointer">
+                        <div class="cost-summary-label">This Month</div>
+                        <div class="cost-summary-amount" id="cost-summary-amount">$0.00</div>
+                        <div class="cost-summary-arrow">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="var(--text-secondary)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="dashboard-section">
+                    <div class="quick-actions-row">
+                        <button class="quick-action-btn" onclick="switchTab('params')">
+                            <div class="quick-action-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2v2c2.21 0 4-1.79 4-4s-1.79-4-4-4z"/></svg>
+                            </div>
+                            <span>Log Params</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="switchTab('costs')">
+                            <div class="quick-action-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+                            </div>
+                            <span>Log Purchase</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="switchTab('tasks')">
+                            <div class="quick-action-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zm-2-7H7v-2h10v2zm-3 4H7v-2h7v2z"/></svg>
+                            </div>
+                            <span>Add Task</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Daily Briefing / Insights -->
+                <div class="dashboard-section">
+                    <h3 class="dash-section-title">Insights</h3>
+                    <div id="insights-list" class="insights-list">
+                        <div class="empty-state">No insights yet</div>
+                    </div>
+                </div>
+
+                <!-- Due Today / Overdue -->
+                <div class="dashboard-section" id="dash-due-section">
+                    <div class="dash-section-title-row">
+                        <h3 class="dash-section-title" id="dash-due-title">Due Today</h3>
+                        <button class="btn btn-small" onclick="switchTab('tasks')">View All</button>
+                    </div>
+                    <div id="dash-due-list" class="maintenance-list">
+                        <div class="empty-state">All caught up!</div>
+                    </div>
+                </div>
+
+                <!-- Maintenance Setup Prompt (shown when no maintenance exists) -->
+                <div class="dashboard-section hidden" id="dash-setup-prompt">
+                    <div class="dash-setup-card" onclick="switchTab('tasks')">
+                        <div class="dash-setup-icon">
+                            <svg viewBox="0 0 24 24" width="24" height="24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z" fill="var(--accent)"/><path d="M12 10l-1 1 3 3-3 3 1 1 4-4z" fill="var(--accent)"/></svg>
+                        </div>
+                        <div>
+                            <div class="dash-setup-title">Set up your maintenance schedule</div>
+                            <div class="dash-setup-sub">Pick what you want to stay on top of</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upcoming This Week -->
+                <div class="dashboard-section">
+                    <h3 class="dash-section-title">Coming Up</h3>
+                    <div id="dash-upcoming-list" class="maintenance-list">
+                        <div class="empty-state">No upcoming tasks</div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="dashboard-section">
+                    <h3 class="dash-section-title">Recent Activity</h3>
+                    <div id="dash-activity-list" class="activity-list">
+                        <div class="empty-state">No recent activity</div>
+                    </div>
+                </div>
+
+                <!-- Active Milestones -->
+                <div class="dashboard-section">
+                    <h3 class="dash-section-title">Active Milestones</h3>
+                    <div id="dash-milestones-list" class="milestones-list">
+                        <div class="empty-state">No active milestones</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Costs Tab -->
+        <section id="tab-costs" class="tab-content hidden">
+            <!-- First-time prompt (shown before wizard is completed) -->
+            <div id="cost-wizard-prompt" class="cost-empty-state">
+                <div class="cost-empty-icon">
+                    <svg viewBox="0 0 64 64" width="64" height="64">
+                        <circle cx="32" cy="32" r="30" fill="var(--accent)" opacity="0.12"/>
+                        <path d="M30.8 27.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V19h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V37h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z" fill="var(--accent)"/>
+                    </svg>
+                </div>
+                <h3>Track Your Reef Costs</h3>
+                <p style="color:var(--text-secondary);margin-bottom:24px">Answer a few quick questions about your setup and our AI will calculate your estimated monthly costs automatically.</p>
+                <button class="btn btn-primary btn-full" onclick="startCostWizard()">Start Tracking Costs with AI</button>
+            </div>
+
+            <!-- Dashboard (shown after wizard is completed) -->
+            <div id="cost-dashboard" class="hidden">
+                <div class="cost-total-card">
+                    <div class="cost-total-label">Estimated Monthly Cost</div>
+                    <div class="cost-total-amount" id="cost-total-amount">$0.00</div>
+                    <div class="cost-total-sub" id="cost-total-sub"></div>
+                </div>
+
+                <!-- Segmented Toggle -->
+                <div class="cost-segment-toggle">
+                    <button class="cost-segment-btn active" id="cost-seg-monthly" onclick="switchCostView('monthly')">Monthly</button>
+                    <button class="cost-segment-btn" id="cost-seg-purchases" onclick="switchCostView('purchases')">Purchases</button>
+                </div>
+
+                <!-- Monthly Recurring View -->
+                <div id="cost-view-monthly">
+                    <div id="cost-chart-wrap" style="max-width:280px;margin:16px auto">
+                        <canvas id="cost-doughnut-chart" width="280" height="280" aria-label="Monthly cost breakdown chart" role="img"></canvas>
+                    </div>
+
+                    <div class="section-header" style="margin-top:16px">
+                        <h3 style="font-size:15px;color:var(--text-primary)">Breakdown</h3>
+                    </div>
+                    <div id="cost-line-items" class="item-list"></div>
+
+                    <div style="margin-top:20px;padding-bottom:20px">
+                        <button class="btn btn-outline btn-full" onclick="startCostWizard()">Re-run Wizard</button>
+                    </div>
+                </div>
+
+                <!-- Purchases View -->
+                <div id="cost-view-purchases" class="hidden">
+                    <!-- Quick Add Form -->
+                    <div class="cost-quick-add">
+                        <h3 style="font-size:15px;color:var(--text-primary);margin-bottom:12px">Log a Purchase</h3>
+                        <form id="cost-quick-form" onsubmit="return handleQuickAddCost(event)">
+                            <div class="cost-category-pills" id="cost-category-pills">
+                                <button type="button" class="cost-pill active" data-cat="Livestock" onclick="selectCostPill(this)">Fish / Coral</button>
+                                <button type="button" class="cost-pill" data-cat="Equipment" onclick="selectCostPill(this)">Equipment</button>
+                                <button type="button" class="cost-pill" data-cat="Supplements" onclick="selectCostPill(this)">Supplements</button>
+                                <button type="button" class="cost-pill" data-cat="Food" onclick="selectCostPill(this)">Food</button>
+                                <button type="button" class="cost-pill" data-cat="Salt" onclick="selectCostPill(this)">Salt</button>
+                                <button type="button" class="cost-pill" data-cat="Testing" onclick="selectCostPill(this)">Testing</button>
+                                <button type="button" class="cost-pill" data-cat="Other" onclick="selectCostPill(this)">Other</button>
+                            </div>
+                            <div style="display:flex;gap:8px;margin-top:12px">
+                                <input type="text" id="cost-quick-desc" placeholder="What did you buy?" style="flex:2" required>
+                                <div class="input-row" style="flex:1;margin:0">
+                                    <span class="input-suffix">$</span>
+                                    <input type="number" id="cost-quick-amount" step="0.01" min="0.01" placeholder="0.00" required style="flex:1">
+                                </div>
+                            </div>
+                            <input type="date" id="cost-quick-date" style="margin-top:8px;width:100%">
+                            <button type="submit" class="btn btn-primary btn-full" style="margin-top:12px">Add Purchase</button>
+                        </form>
+                    </div>
+
+                    <!-- Spending This Month -->
+                    <div id="cost-purchases-summary" style="margin-top:16px"></div>
+
+                    <!-- Recent Purchases -->
+                    <div class="section-header" style="margin-top:16px">
+                        <h3 style="font-size:15px;color:var(--text-primary)">Recent Purchases</h3>
+                    </div>
+                    <div id="cost-purchases-list" class="item-list"></div>
+                </div>
+            </div>
+
+            <!-- Cost Wizard Overlay -->
+            <div id="cost-wizard-overlay" class="hidden">
+                <div class="wizard-progress-bar"><div class="wizard-progress-fill" id="cw-progress-fill" style="width:10%"></div></div>
+                <div class="wizard-step-label" id="cw-step-label">Step 1 of 10</div>
+
+                <!-- Step 1: Light Brand -->
+                <div class="wizard-step active" data-cw-step="1">
+                    <h2 class="wizard-question">What brand of light do you use?</h2>
+                    <div id="cw-lights-added" class="cw-lights-summary hidden"></div>
+                    <div id="cw-light-brands" class="cw-scrollable-list">
+                        <!-- Populated dynamically from /reef/api/lights -->
+                    </div>
+                </div>
+
+                <!-- Step 2: Light Model, Quantity & Hours -->
+                <div class="wizard-step" data-cw-step="2">
+                    <h2 class="wizard-question" id="cw-model-title">Which model?</h2>
+                    <div id="cw-light-models" class="cw-scrollable-list" style="margin-bottom:16px">
+                        <!-- Populated dynamically based on brand selection -->
+                    </div>
+                    <div id="cw-light-custom-watts" class="hidden" style="margin-bottom:16px">
+                        <div class="form-group">
+                            <label>Enter your light's wattage</label>
+                            <div class="input-row">
+                                <input type="number" id="cw-light-wattage" placeholder="e.g. 150" inputmode="numeric" style="flex:1">
+                                <span class="input-suffix">watts</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom:12px">
+                        <label>How many of this light?</label>
+                        <div class="wizard-preset-grid">
+                            <button class="wizard-preset-btn cw-qty-btn selected" data-qty="1" onclick="cwSelectLightQty(1)">1</button>
+                            <button class="wizard-preset-btn cw-qty-btn" data-qty="2" onclick="cwSelectLightQty(2)">2</button>
+                            <button class="wizard-preset-btn cw-qty-btn" data-qty="3" onclick="cwSelectLightQty(3)">3</button>
+                            <button class="wizard-preset-btn cw-qty-btn" data-qty="4" onclick="cwSelectLightQty(4)">4</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Hours per day</label>
+                        <div class="wizard-preset-grid">
+                            <button class="wizard-preset-btn cw-hours-btn" data-hours="6" onclick="cwSelectLightHours(6)">6h</button>
+                            <button class="wizard-preset-btn cw-hours-btn" data-hours="8" onclick="cwSelectLightHours(8)">8h</button>
+                            <button class="wizard-preset-btn cw-hours-btn" data-hours="10" onclick="cwSelectLightHours(10)">10h</button>
+                            <button class="wizard-preset-btn cw-hours-btn" data-hours="12" onclick="cwSelectLightHours(12)">12h</button>
+                        </div>
+                    </div>
+                    <div id="cw-light-watts-display" class="hidden" style="margin-top:12px;padding:10px 14px;background:var(--accent-glow);border-radius:10px;font-size:13px;color:var(--accent)">
+                        Total power: <strong id="cw-watts-value">--</strong> watts
+                    </div>
+                    <button class="btn btn-outline btn-full" style="margin-top:12px" id="cw-add-another-light" onclick="cwAddLightAndPickAnother()">
+                        + Add Another Light
+                    </button>
+                </div>
+
+                <!-- Step 3: Heater -->
+                <div class="wizard-step" data-cw-step="3">
+                    <h2 class="wizard-question">What wattage is your heater?</h2>
+                    <div class="wizard-preset-grid">
+                        <button class="wizard-preset-btn cw-preset" data-key="heater_wattage" data-val="100" onclick="cwPreset(this)">100W</button>
+                        <button class="wizard-preset-btn cw-preset" data-key="heater_wattage" data-val="150" onclick="cwPreset(this)">150W</button>
+                        <button class="wizard-preset-btn cw-preset" data-key="heater_wattage" data-val="200" onclick="cwPreset(this)">200W</button>
+                        <button class="wizard-preset-btn cw-preset" data-key="heater_wattage" data-val="300" onclick="cwPreset(this)">300W</button>
+                        <button class="wizard-preset-btn cw-preset" data-key="heater_wattage" data-val="500" onclick="cwPreset(this)">500W</button>
+                    </div>
+                    <div class="input-row" style="margin-top:12px">
+                        <input type="number" id="cw-heater-wattage" placeholder="Custom" inputmode="numeric" style="flex:1" oninput="cwInput('heater_wattage',this.value)">
+                        <span class="input-suffix">watts</span>
+                    </div>
+                </div>
+
+                <!-- Step 4: Pumps & Flow -->
+                <div class="wizard-step" data-cw-step="4">
+                    <h2 class="wizard-question">Pumps &amp; Flow</h2>
+                    <div class="form-group" style="margin-bottom:16px">
+                        <label>Return pump wattage</label>
+                        <div class="input-row">
+                            <input type="number" id="cw-return-pump" placeholder="e.g. 40" inputmode="numeric" style="flex:1" oninput="cwInput('return_pump_wattage',this.value)">
+                            <span class="input-suffix">watts</span>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom:16px">
+                        <label>Number of powerheads</label>
+                        <div class="wizard-preset-grid">
+                            <button class="wizard-preset-btn cw-preset" data-key="powerhead_count" data-val="1" onclick="cwPreset(this)">1</button>
+                            <button class="wizard-preset-btn cw-preset" data-key="powerhead_count" data-val="2" onclick="cwPreset(this)">2</button>
+                            <button class="wizard-preset-btn cw-preset" data-key="powerhead_count" data-val="3" onclick="cwPreset(this)">3</button>
+                            <button class="wizard-preset-btn cw-preset" data-key="powerhead_count" data-val="4" onclick="cwPreset(this)">4</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Wattage per powerhead</label>
+                        <div class="input-row">
+                            <input type="number" id="cw-ph-watts" placeholder="e.g. 15" inputmode="numeric" style="flex:1" oninput="cwInput('powerhead_wattage',this.value)">
+                            <span class="input-suffix">watts each</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 5: Skimmer -->
+                <div class="wizard-step" data-cw-step="5">
+                    <h2 class="wizard-question">Protein skimmer wattage?</h2>
+                    <div class="wizard-preset-grid">
+                        <button class="wizard-preset-btn cw-preset" data-key="skimmer_wattage" data-val="10" onclick="cwPreset(this)">10W</button>
+                        <button class="wizard-preset-btn cw-preset" data-key="skimmer_wattage" data-val="20" onclick="cwPreset(this)">20W</button>
+                        <button class="wizard-preset-btn cw-preset" data-key="skimmer_wattage" data-val="30" onclick="cwPreset(this)">30W</button>
+                        <button class="wizard-preset-btn cw-preset" data-key="skimmer_wattage" data-val="50" onclick="cwPreset(this)">50W</button>
+                    </div>
+                    <div class="input-row" style="margin-top:12px">
+                        <input type="number" id="cw-skimmer-wattage" placeholder="Custom" inputmode="numeric" style="flex:1" oninput="cwInput('skimmer_wattage',this.value)">
+                        <span class="input-suffix">watts</span>
+                    </div>
+                </div>
+
+                <!-- Step 6: Filter Media -->
+                <div class="wizard-step" data-cw-step="6">
+                    <h2 class="wizard-question">Filter media usage</h2>
+                    <div class="cw-toggle-group">
+                        <div class="cw-toggle-row">
+                            <span>Activated Carbon</span>
+                            <div class="cw-toggle-options">
+                                <button class="wizard-preset-btn cw-preset" data-key="uses_carbon" data-val="yes" onclick="cwPreset(this)">Yes</button>
+                                <button class="wizard-preset-btn cw-preset" data-key="uses_carbon" data-val="no" onclick="cwPreset(this)">No</button>
+                            </div>
+                        </div>
+                        <div id="cw-carbon-freq" class="cw-freq-row hidden">
+                            <label>Replace every:</label>
+                            <select id="cw-carbon-freq-sel" onchange="cwInput('carbon_frequency',this.value)">
+                                <option value="weekly">Week</option>
+                                <option value="biweekly">2 Weeks</option>
+                                <option value="monthly" selected>Month</option>
+                            </select>
+                        </div>
+
+                        <div class="cw-toggle-row" style="margin-top:12px">
+                            <span>GFO (Phosphate Remover)</span>
+                            <div class="cw-toggle-options">
+                                <button class="wizard-preset-btn cw-preset" data-key="uses_gfo" data-val="yes" onclick="cwPreset(this)">Yes</button>
+                                <button class="wizard-preset-btn cw-preset" data-key="uses_gfo" data-val="no" onclick="cwPreset(this)">No</button>
+                            </div>
+                        </div>
+                        <div id="cw-gfo-freq" class="cw-freq-row hidden">
+                            <label>Replace every:</label>
+                            <select id="cw-gfo-freq-sel" onchange="cwInput('gfo_frequency',this.value)">
+                                <option value="weekly">Week</option>
+                                <option value="biweekly">2 Weeks</option>
+                                <option value="monthly" selected>Month</option>
+                            </select>
+                        </div>
+
+                        <div class="cw-toggle-row" style="margin-top:12px">
+                            <span>Filter Socks</span>
+                            <select id="cw-sock-freq" style="width:auto" onchange="cwInput('filter_sock_frequency',this.value)">
+                                <option value="none">Don't use</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="biweekly">Biweekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 7: Dosing (conditional) -->
+                <div class="wizard-step" data-cw-step="7">
+                    <h2 class="wizard-question">Dosing details</h2>
+                    <div class="form-group" style="margin-bottom:16px">
+                        <label>What do you dose?</label>
+                        <div class="wizard-card-grid" style="grid-template-columns:1fr 1fr">
+                            <button class="wizard-card cw-card" data-key="dosing_type" data-val="2part" onclick="cwSelect(this)" style="padding:12px"><span>2-Part</span></button>
+                            <button class="wizard-card cw-card" data-key="dosing_type" data-val="kalkwasser" onclick="cwSelect(this)" style="padding:12px"><span>Kalkwasser</span></button>
+                            <button class="wizard-card cw-card" data-key="dosing_type" data-val="all_for_reef" onclick="cwSelect(this)" style="padding:12px"><span>All For Reef</span></button>
+                            <button class="wizard-card cw-card" data-key="dosing_type" data-val="other" onclick="cwSelect(this)" style="padding:12px"><span>Other</span></button>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom:16px">
+                        <label>Brand</label>
+                        <select id="cw-dosing-brand" onchange="cwInput('dosing_brand',this.value)">
+                            <option value="brs_2part">BRS 2-Part</option>
+                            <option value="red_sea_foundation">Red Sea Foundation</option>
+                            <option value="brightwell">Brightwell Aquatics</option>
+                            <option value="all_for_reef">All For Reef</option>
+                            <option value="kalkwasser">Kalkwasser</option>
+                            <option value="esv_b_ionic">ESV B-Ionic</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Estimated total daily dosing (ml)</label>
+                        <div class="input-row">
+                            <input type="number" id="cw-dosing-ml" placeholder="e.g. 50" inputmode="numeric" style="flex:1" oninput="cwInput('dosing_daily_ml',this.value)">
+                            <span class="input-suffix">ml/day</span>
+                        </div>
+                        <button class="btn btn-small btn-outline" style="margin-top:8px;align-self:flex-start" onclick="cwInput('dosing_daily_ml','not_sure')">Not sure — estimate for me</button>
+                    </div>
+                </div>
+
+                <!-- Step 8: Food -->
+                <div class="wizard-step" data-cw-step="8">
+                    <h2 class="wizard-question">Feeding habits</h2>
+                    <div class="form-group" style="margin-bottom:16px">
+                        <label>How many times per day do you feed?</label>
+                        <div class="wizard-preset-grid">
+                            <button class="wizard-preset-btn cw-preset" data-key="feedings_per_day" data-val="1" onclick="cwPreset(this)">1x</button>
+                            <button class="wizard-preset-btn cw-preset" data-key="feedings_per_day" data-val="2" onclick="cwPreset(this)">2x</button>
+                            <button class="wizard-preset-btn cw-preset" data-key="feedings_per_day" data-val="3" onclick="cwPreset(this)">3x</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Food type</label>
+                        <div class="wizard-card-grid" style="grid-template-columns:1fr 1fr 1fr">
+                            <button class="wizard-card cw-card" data-key="food_type" data-val="pellets" onclick="cwSelect(this)" style="padding:12px"><span style="font-size:22px">🟤</span><span>Pellets</span></button>
+                            <button class="wizard-card cw-card" data-key="food_type" data-val="frozen" onclick="cwSelect(this)" style="padding:12px"><span style="font-size:22px">🧊</span><span>Frozen</span></button>
+                            <button class="wizard-card cw-card" data-key="food_type" data-val="combo" onclick="cwSelect(this)" style="padding:12px"><span style="font-size:22px">🍽️</span><span>Both</span></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 9: RO/DI -->
+                <div class="wizard-step" data-cw-step="9">
+                    <h2 class="wizard-question">RO/DI Water</h2>
+                    <div class="form-group" style="margin-bottom:16px">
+                        <label>Do you make your own RO/DI water?</label>
+                        <div class="wizard-card-grid" style="grid-template-columns:1fr 1fr">
+                            <button class="wizard-card cw-card" data-key="rodi_makes_own" data-val="yes" onclick="cwSelect(this);cwShowRodi('own')" style="padding:12px"><span style="font-size:22px">🔧</span><span>Yes, own system</span></button>
+                            <button class="wizard-card cw-card" data-key="rodi_makes_own" data-val="no" onclick="cwSelect(this);cwShowRodi('buy')" style="padding:12px"><span style="font-size:22px">🏪</span><span>No, I buy it</span></button>
+                        </div>
+                    </div>
+                    <div id="cw-rodi-own" class="hidden">
+                        <div class="form-group">
+                            <label>System stage count</label>
+                            <div class="wizard-preset-grid">
+                                <button class="wizard-preset-btn cw-preset" data-key="rodi_stage" data-val="3_stage" onclick="cwPreset(this)">3-Stage</button>
+                                <button class="wizard-preset-btn cw-preset" data-key="rodi_stage" data-val="4_stage" onclick="cwPreset(this)">4-Stage</button>
+                                <button class="wizard-preset-btn cw-preset" data-key="rodi_stage" data-val="5_stage" onclick="cwPreset(this)">5-Stage</button>
+                                <button class="wizard-preset-btn cw-preset" data-key="rodi_stage" data-val="6_stage" onclick="cwPreset(this)">6-Stage</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="cw-rodi-buy" class="hidden">
+                        <div class="form-group">
+                            <label>How much do you pay per gallon?</label>
+                            <div class="input-row">
+                                <span class="input-suffix">$</span>
+                                <input type="number" id="cw-rodi-price" placeholder="0.50" inputmode="decimal" step="0.01" style="flex:1" oninput="cwInput('rodi_buy_price',this.value)">
+                                <span class="input-suffix">/gal</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 10: Salt Price & Electricity -->
+                <div class="wizard-step" data-cw-step="10">
+                    <h2 class="wizard-question">Salt &amp; Electricity</h2>
+                    <div class="form-group" style="margin-bottom:16px">
+                        <label>How much do you pay for a bucket of salt? (optional)</label>
+                        <div class="input-row">
+                            <span class="input-suffix">$</span>
+                            <input type="number" id="cw-salt-price" placeholder="Use average" inputmode="decimal" step="0.01" style="flex:1" oninput="cwInput('salt_bucket_price',this.value)">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Electricity rate ($/kWh)</label>
+                        <div class="input-row">
+                            <span class="input-suffix">$</span>
+                            <input type="number" id="cw-elec-rate" placeholder="0.15" inputmode="decimal" step="0.01" value="0.15" style="flex:1" oninput="cwInput('electricity_rate',this.value)">
+                            <span class="input-suffix">/kWh</span>
+                        </div>
+                        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">US average is ~$0.15/kWh</div>
+                    </div>
+                </div>
+
+                <!-- Wizard Navigation -->
+                <div class="wizard-nav" id="cw-nav">
+                    <button class="wizard-back-btn" id="cw-back" onclick="cwPrev()">
+                        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="currentColor"/></svg>
+                    </button>
+                    <button class="btn btn-outline cw-skip-btn" onclick="cwSkip()">Skip</button>
+                    <button class="btn btn-primary wizard-next-btn" id="cw-next" onclick="cwNext()">Continue</button>
+                </div>
+
+                <!-- Loading state -->
+                <div id="cw-loading" class="hidden" style="text-align:center;padding:60px 20px">
+                    <div class="wizard-loading-logo" style="animation:logoPulse 1.5s infinite">
+                        <img src="/static/reef/icons/icon-192.png" alt="ReefPilot" width="48" height="48" style="border-radius:12px;">
+                    </div>
+                    <h3 style="margin-top:16px;color:var(--text-primary)">Calculating your costs...</h3>
+                    <p style="color:var(--text-secondary)">Crunching the numbers based on your setup</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Chat Tab -->
+        <section id="tab-chat" class="tab-content hidden">
+            <div class="chat-messages" id="chat-messages">
+                <div class="chat-welcome">
+                    <div class="chat-welcome-icon">
+                        <img src="/static/reef/icons/icon-192.png" alt="ReefPilot" width="48" height="48" style="border-radius:12px;">
+                    </div>
+                    <h3>ReefPilot AI</h3>
+                    <p>Tell me your water test results and I'll log them automatically. Ask me anything about reef keeping!</p>
+                    <div class="chat-suggestions">
+                        <button class="suggestion-chip" onclick="sendSuggestion('My KH is 8.2 and calcium is 430')">KH is 8.2, Ca is 430</button>
+                        <button class="suggestion-chip" onclick="sendSuggestion('What should my ideal parameters be?')">Ideal parameters?</button>
+                        <button class="suggestion-chip" onclick="sendSuggestion('How often should I test my water?')">Testing schedule?</button>
+                    </div>
+                </div>
+            </div>
+            <div class="chat-input-bar">
+                <form id="chat-form" onsubmit="return handleChatSend(event)">
+                    <input type="text" id="chat-input" placeholder="Tell me your test results or ask a question..." autocomplete="off">
+                    <button type="submit" class="btn-send" id="btn-send" aria-label="Send message">
+                        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z" fill="currentColor"/></svg>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Tasks Tab (unified Calendar + Maintenance) -->
+        <section id="tab-tasks" class="tab-content hidden">
+
+            <!-- Maintenance Setup (shown when no maintenance tasks exist) -->
+            <div id="tasks-setup" class="hidden">
+                <div class="tasks-setup-card">
+                    <h2 class="tasks-setup-title">What do you want to stay on top of?</h2>
+                    <p class="tasks-setup-sub">Pick what matters to you and we'll build your schedule.</p>
+
+                    <div class="tasks-setup-chips" id="setup-chips">
+                        <button class="setup-chip" data-task="Water changes" data-freq="weekly" onclick="toggleSetupChip(this)">Water Changes</button>
+                        <button class="setup-chip" data-task="Test water parameters" data-freq="weekly" onclick="toggleSetupChip(this)">Parameter Testing</button>
+                        <button class="setup-chip" data-task="Clean glass" data-freq="weekly" onclick="toggleSetupChip(this)">Glass Cleaning</button>
+                        <button class="setup-chip" data-task="Clean filter socks / media" data-freq="biweekly" onclick="toggleSetupChip(this)">Filter Maintenance</button>
+                        <button class="setup-chip" data-task="Check equipment" data-freq="weekly" onclick="toggleSetupChip(this)">Equipment Check</button>
+                        <button class="setup-chip" data-task="Dose supplements" data-freq="daily" onclick="toggleSetupChip(this)">Dosing</button>
+                        <button class="setup-chip" data-task="Clean skimmer cup" data-freq="weekly" onclick="toggleSetupChip(this)">Skimmer Cleaning</button>
+                        <button class="setup-chip" data-task="Top off ATO reservoir" data-freq="weekly" onclick="toggleSetupChip(this)">ATO Refill</button>
+                        <button class="setup-chip" data-task="Replace carbon / GFO" data-freq="monthly" onclick="toggleSetupChip(this)">Media Replacement</button>
+                        <button class="setup-chip" data-task="Clean powerheads" data-freq="monthly" onclick="toggleSetupChip(this)">Powerhead Cleaning</button>
+                    </div>
+
+                    <div class="tasks-setup-custom" id="setup-custom-wrap">
+                        <button class="btn btn-small btn-outline" onclick="showCustomTaskSetup()" id="btn-add-custom-setup">+ Add your own reminder</button>
+                        <div id="setup-custom-form" class="hidden" style="margin-top:12px">
+                            <div class="form-group">
+                                <input type="text" id="setup-custom-name" placeholder="e.g. Feed corals, Check salinity...">
+                            </div>
+                            <div style="display:flex;gap:8px">
+                                <select id="setup-custom-freq" style="flex:1">
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly" selected>Weekly</option>
+                                    <option value="biweekly">Biweekly</option>
+                                    <option value="monthly">Monthly</option>
+                                </select>
+                                <button class="btn btn-small btn-primary" onclick="addCustomSetupChip()">Add</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:8px;margin-top:20px">
+                        <button class="btn btn-primary" style="flex:1" onclick="saveSetupTasks()" id="btn-save-setup">Create My Schedule</button>
+                        <button class="btn btn-outline" onclick="generateAIMaintenance()" id="btn-gen-maint" style="flex:1">AI Auto-Plan</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Tasks View (shown when tasks exist) -->
+            <div id="tasks-main">
+                <div class="cal-header-row">
+                    <h2>Tasks</h2>
+                    <button class="btn-icon-round" onclick="showTasksSetup()" title="Edit schedule" aria-label="Edit schedule">
+                        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 00-.48-.41h-3.84a.48.48 0 00-.48.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87a.48.48 0 00.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.26.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1115.6 12 3.61 3.61 0 0112 15.6z" fill="currentColor"/></svg>
+                    </button>
+                </div>
+                <div id="tasks-list" class="task-list">
+                    <div class="empty-state">Loading tasks...</div>
+                </div>
+            </div>
+
+            <!-- FAB: Add Task -->
+            <button class="cal-fab" onclick="calAddTask()">+</button>
+
+            <!-- Add Task Modal -->
+            <div id="cal-add-task-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Add Task">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Add Task</h3>
+                        <button class="modal-close" aria-label="Close" onclick="closeModal('cal-add-task-modal')">&times;</button>
+                    </div>
+                    <form id="cal-add-task-form" onsubmit="return handleCalAddTask(event)">
+                        <div class="form-group">
+                            <label>Task Name</label>
+                            <input type="text" id="cal-task-name" required placeholder="e.g. Water change">
+                        </div>
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" id="cal-task-date">
+                        </div>
+                        <div class="form-group">
+                            <label>Frequency</label>
+                            <select id="cal-task-freq">
+                                <option value="once">One-time</option>
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="biweekly">Biweekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full">Add Task</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Params Tab (accessible from Tank or More) -->
+        <section id="tab-params" class="tab-content hidden">
+            <div class="section-header">
+                <h2>Water Parameters</h2>
+                <button class="btn btn-small" onclick="showManualEntry()">+ Log Test</button>
+            </div>
+            <div class="param-grid" id="param-grid">
+                <!-- Filled by JS -->
+            </div>
+
+            <!-- Manual Entry Modal -->
+            <div id="manual-entry-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Manual Parameter Entry">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Log Test Results</h3>
+                        <button class="modal-close" aria-label="Close" onclick="closeModal('manual-entry-modal')">&times;</button>
+                    </div>
+                    <form id="manual-entry-form" onsubmit="return handleManualEntry(event)">
+                        <div id="manual-entry-fields">
+                            <!-- Filled by JS -->
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full">Log Parameters</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Chart Modal -->
+            <div id="chart-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Parameter Chart">
+                <div class="modal-content modal-large">
+                    <div class="modal-header">
+                        <h3 id="chart-title">Parameter History</h3>
+                        <button class="modal-close" aria-label="Close" onclick="closeChart()">&times;</button>
+                    </div>
+                    <div class="chart-range-btns">
+                        <button class="btn btn-small btn-active" onclick="loadChart(currentChartType, 7)">7d</button>
+                        <button class="btn btn-small" onclick="loadChart(currentChartType, 30)">30d</button>
+                        <button class="btn btn-small" onclick="loadChart(currentChartType, 90)">90d</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="param-chart" aria-label="Water parameter trend chart" role="img"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tank Tab -->
+        <section id="tab-tank" class="tab-content hidden">
+            <div class="section-header">
+                <h2>My Tank</h2>
+                <button class="btn btn-small" onclick="showTankEdit()">Edit</button>
+            </div>
+
+            <div class="tank-profile-card" id="tank-profile-card">
+                <!-- Filled by JS -->
+            </div>
+
+
+            <!-- Livestock Section -->
+            <div class="section-header">
+                <h3>Livestock</h3>
+                <button class="btn btn-small" onclick="showAddLivestock()">+ Add</button>
+            </div>
+            <div id="livestock-list" class="item-list">
+                <!-- Filled by JS -->
+            </div>
+
+            <!-- Equipment Section -->
+            <div class="section-header">
+                <h3>Equipment</h3>
+                <button class="btn btn-small" onclick="showAddEquipment()">+ Add</button>
+            </div>
+            <div id="equipment-list" class="item-list">
+                <!-- Filled by JS -->
+            </div>
+
+            <!-- Add Livestock Modal -->
+            <div id="add-livestock-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Add Livestock">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Add Livestock</h3>
+                        <button class="modal-close" aria-label="Close" onclick="closeModal('add-livestock-modal')">&times;</button>
+                    </div>
+                    <form onsubmit="return handleAddLivestock(event)">
+                        <div class="form-group">
+                            <label>Category</label>
+                            <select id="ls-category">
+                                <option value="fish">Fish</option>
+                                <option value="coral">Coral</option>
+                                <option value="invertebrate">Invertebrate</option>
+                                <option value="anemone">Anemone</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Common Name</label>
+                            <input type="text" id="ls-common-name" placeholder="e.g. Clownfish" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Species (optional)</label>
+                            <input type="text" id="ls-species" placeholder="e.g. Amphiprion ocellaris">
+                        </div>
+                        <div class="form-group">
+                            <label>Nickname (optional)</label>
+                            <input type="text" id="ls-nickname" placeholder="e.g. Nemo">
+                        </div>
+                        <div class="form-group">
+                            <label>Quantity</label>
+                            <input type="number" id="ls-quantity" value="1" min="1">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full">Add</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Add Equipment Modal -->
+            <div id="add-equipment-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Add Equipment">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Add Equipment</h3>
+                        <button class="modal-close" aria-label="Close" onclick="closeModal('add-equipment-modal')">&times;</button>
+                    </div>
+                    <form onsubmit="return handleAddEquipment(event)">
+                        <div class="form-group">
+                            <label>Category</label>
+                            <select id="eq-category">
+                                <option value="lighting">Lighting</option>
+                                <option value="skimmer">Skimmer</option>
+                                <option value="pump">Return Pump</option>
+                                <option value="powerhead">Powerhead/Wavemaker</option>
+                                <option value="heater">Heater</option>
+                                <option value="ato">ATO</option>
+                                <option value="doser">Doser</option>
+                                <option value="controller">Controller</option>
+                                <option value="filtration">Filtration</option>
+                                <option value="reactor">Reactor</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Brand</label>
+                            <input type="text" id="eq-brand" placeholder="e.g. EcoTech" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Model</label>
+                            <input type="text" id="eq-model" placeholder="e.g. Radion XR30">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full">Add</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Tank Edit Modal -->
+            <div id="tank-edit-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Edit Tank">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Edit Tank Profile</h3>
+                        <button class="modal-close" aria-label="Close" onclick="closeModal('tank-edit-modal')">&times;</button>
+                    </div>
+                    <form onsubmit="return handleTankEdit(event)">
+                        <div class="form-group">
+                            <label>Display Name</label>
+                            <input type="text" id="edit-display-name">
+                        </div>
+                        <div class="form-group">
+                            <label>Tank Size (gallons)</label>
+                            <input type="number" id="edit-tank-size" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Tank Type</label>
+                            <select id="edit-tank-type">
+                                <option value="fowlr">Fish Only with Live Rock</option>
+                                <option value="soft_coral">Soft Coral Reef</option>
+                                <option value="lps">LPS Dominant Reef</option>
+                                <option value="sps">SPS Dominant Reef</option>
+                                <option value="mixed_reef">Mixed Reef</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Salt Brand</label>
+                            <select id="edit-salt-brand">
+                                <!-- Filled by JS -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Sump Size (gallons)</label>
+                            <input type="number" id="edit-sump-size" min="0">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full">Save</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- More Tab -->
+        <section id="tab-more" class="tab-content hidden">
+            <h2>More</h2>
+            <div class="more-grid">
+                <button class="more-card" onclick="switchTab('tank')">
+                    <div class="more-card-icon">
+                        <svg viewBox="0 0 24 24" width="28" height="28"><path d="M2 4v16h20V4H2zm18 14H4V6h16v12z" fill="currentColor"/><path d="M7 17c1-2 2-4 5-4s4 2 5 4" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+                    </div>
+                    <span class="more-card-label">My Tank</span>
+                </button>
+                <button class="more-card" onclick="openMoreSection('calculators')">
+                    <div class="more-card-icon">
+                        <svg viewBox="0 0 24 24" width="28" height="28"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 15h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V8h2v2zm4 8h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V8h2v2zm-8 8H6v-2h2v2zm0-4H6v-2h2v2zm0-4H6V8h2v2z" fill="currentColor"/></svg>
+                    </div>
+                    <span class="more-card-label">Calculators</span>
+                </button>
+                <button class="more-card" onclick="switchTab('costs')">
+                    <div class="more-card-icon">
+                        <svg viewBox="0 0 24 24" width="28" height="28"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z" fill="currentColor"/></svg>
+                    </div>
+                    <span class="more-card-label">Cost Tracker</span>
+                </button>
+                <button class="more-card" onclick="openMoreSection('milestones')">
+                    <div class="more-card-icon">
+                        <svg viewBox="0 0 24 24" width="28" height="28"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6z" fill="currentColor"/></svg>
+                    </div>
+                    <span class="more-card-label">Milestones</span>
+                </button>
+                <button class="more-card" onclick="openMoreSection('settings')">
+                    <div class="more-card-icon">
+                        <svg viewBox="0 0 24 24" width="28" height="28"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1115.6 12 3.6 3.6 0 0112 15.6z" fill="currentColor"/></svg>
+                    </div>
+                    <span class="more-card-label">Settings</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Calc Section (opened from More) -->
+        <section id="tab-calc" class="tab-content hidden">
+            <div class="section-header">
+                <h2>Calculators</h2>
+                <button class="btn btn-small" onclick="switchTab('more')">Back</button>
+            </div>
+            <div class="calc-cards">
+                <!-- Salt Mix Calculator -->
+                <div class="calc-card">
+                    <h3>Salt Mixing</h3>
+                    <p class="calc-desc">Calculate how much salt to mix for your water change</p>
+                    <div class="form-group">
+                        <label>Water Volume</label>
+                        <div class="input-row">
+                            <input type="number" id="calc-salt-volume" placeholder="e.g. 10" min="0.1" step="0.1">
+                            <span class="input-suffix">gallons</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Target Salinity</label>
+                        <div class="input-row">
+                            <input type="number" id="calc-salt-sg" value="1.026" min="1.0" max="1.04" step="0.001">
+                            <span class="input-suffix">SG</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Salt Brand</label>
+                        <select id="calc-salt-brand">
+                            <!-- Filled by JS -->
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-full" onclick="calcSaltMix()">Calculate</button>
+                    <div id="salt-result" class="calc-result hidden"></div>
+                </div>
+
+                <!-- Water Change Calculator -->
+                <div class="calc-card">
+                    <h3>Water Change</h3>
+                    <p class="calc-desc">Calculate water change volume</p>
+                    <div class="form-group">
+                        <label>Total System Volume</label>
+                        <div class="input-row">
+                            <input type="number" id="calc-wc-volume" placeholder="e.g. 100" min="1">
+                            <span class="input-suffix">gallons</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Change Percentage</label>
+                        <div class="input-row">
+                            <input type="number" id="calc-wc-percent" value="10" min="1" max="100">
+                            <span class="input-suffix">%</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary btn-full" onclick="calcWaterChange()">Calculate</button>
+                    <div id="wc-result" class="calc-result hidden"></div>
+                </div>
+
+                <!-- Dosing Calculator -->
+                <div class="calc-card">
+                    <h3>2-Part Dosing</h3>
+                    <p class="calc-desc">Calculate alkalinity and calcium dosing</p>
+                    <div class="form-group">
+                        <label>System Volume</label>
+                        <div class="input-row">
+                            <input type="number" id="calc-dose-volume" placeholder="e.g. 100" min="1">
+                            <span class="input-suffix">gallons</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Current Alk (dKH)</label>
+                        <input type="number" id="calc-dose-current-alk" placeholder="e.g. 7.0" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Target Alk (dKH)</label>
+                        <input type="number" id="calc-dose-target-alk" value="8.0" step="0.1">
+                    </div>
+                    <button class="btn btn-primary btn-full" onclick="calcDosing()">Calculate</button>
+                    <div id="dose-result" class="calc-result hidden"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cost Tracker Modal -->
+        <div id="cost-tracker-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Cost Tracker">
+            <div class="modal-content modal-large">
+                <div class="modal-header">
+                    <h3>Cost Tracker</h3>
+                    <button class="modal-close" aria-label="Close" onclick="closeModal('cost-tracker-modal')">&times;</button>
+                </div>
+                <button class="btn btn-primary btn-full" onclick="showAddExpense()" style="margin-bottom:16px">+ Add Expense</button>
+                <div id="cost-add-form-wrap" class="hidden">
+                    <form id="cost-add-form" onsubmit="return handleAddCost(event)">
+                        <div class="form-group">
+                            <label>Category</label>
+                            <select id="cost-category">
+                                <option value="Livestock">Fish / Coral</option>
+                                <option value="Equipment">Equipment</option>
+                                <option value="Supplements">Supplements</option>
+                                <option value="Food">Food</option>
+                                <option value="Salt">Salt</option>
+                                <option value="Testing">Testing</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <input type="text" id="cost-description" placeholder="e.g. Red Sea Salt 22kg">
+                        </div>
+                        <div class="form-group">
+                            <label>Amount ($)</label>
+                            <input type="number" id="cost-amount" step="0.01" min="0.01" required placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" id="cost-date">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full">Save Expense</button>
+                    </form>
+                    <hr style="border-color:var(--border);margin:16px 0">
+                </div>
+                <!-- Monthly summary -->
+                <div id="cost-summary-breakdown" class="cost-breakdown"></div>
+                <!-- Recent expenses list -->
+                <div id="cost-list" class="item-list" style="margin-top:12px"></div>
+            </div>
+        </div>
+
+
+        <!-- Milestones Modal -->
+        <div id="milestones-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Milestones">
+            <div class="modal-content modal-large">
+                <div class="modal-header">
+                    <h3>Milestones</h3>
+                    <button class="modal-close" aria-label="Close" onclick="closeModal('milestones-modal')">&times;</button>
+                </div>
+                <div id="milestones-full-list" class="milestones-list"></div>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Settings">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Settings</h3>
+                    <button class="modal-close" aria-label="Close" onclick="closeModal('settings-modal')">&times;</button>
+                </div>
+                <div class="settings-list">
+                    <div class="settings-item">
+                        <span>Logged in as</span>
+                        <span id="settings-email" class="settings-value"></span>
+                    </div>
+                    <button class="btn btn-full btn-outline" onclick="clearChatHistory()">Clear Chat History</button>
+                    <button class="btn btn-full btn-danger" onclick="handleLogout()">Sign Out</button>
+
+                    <div class="settings-divider"></div>
+                    <div class="settings-section-title">Legal</div>
+                    <a href="/privacy" target="_blank" class="settings-link">Privacy Policy</a>
+                    <a href="/terms" target="_blank" class="settings-link">Terms of Service</a>
+
+                    <div class="settings-divider"></div>
+                    <div class="settings-section-title" style="color:var(--danger)">Danger Zone</div>
+                    <button class="btn btn-full btn-danger-outline" onclick="confirmDeleteAccount()">Delete My Account</button>
+                    <p class="settings-hint">This will permanently delete your account and all data. This cannot be undone.</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bottom Navigation: Home, Costs, Chat, Calendar, Tank, More -->
+    <nav class="bottom-nav">
+        <button class="nav-tab active" data-tab="home" onclick="switchTab('home')">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" fill="currentColor"/></svg>
+            <span>Home</span>
+        </button>
+        <button class="nav-tab" data-tab="costs" onclick="switchTab('costs')">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z" fill="currentColor"/></svg>
+            <span>Costs</span>
+        </button>
+        <button class="nav-tab" data-tab="chat" onclick="switchTab('chat')">
+            <svg viewBox="0 0 24 24" width="24" height="24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" fill="currentColor"/></svg>
+            <span>Chat</span>
+        </button>
+        <button class="nav-tab" data-tab="tasks" onclick="switchTab('tasks')">
+            <svg viewBox="0 0 24 24" width="24" height="24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z" fill="currentColor"/><path d="M10.09 15.59l-2.5-2.5L6.5 14.18l3.59 3.59 7.5-7.5-1.09-1.09z" fill="currentColor"/></svg>
+            <span>Tasks</span>
+        </button>
+        <button class="nav-tab" data-tab="params" onclick="switchTab('params')">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" fill="currentColor"/></svg>
+            <span>Params</span>
+        </button>
+        <button class="nav-tab" data-tab="more" onclick="switchTab('more')">
+            <svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="5" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="19" r="2" fill="currentColor"/></svg>
+            <span>More</span>
+        </button>
+    </nav>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<script src="/static/reef/js/reef-app.js?v=9"></script>
+<script src="/static/reef/js/reef-chat.js?v=8"></script>
+<script src="/static/reef/js/reef-params.js?v=8"></script>
+<script src="/static/reef/js/reef-calc.js?v=8"></script>
+<script src="/static/reef/js/reef-tank.js?v=8"></script>
+<script src="/static/reef/js/reef-home.js?v=9"></script>
+<script src="/static/reef/js/reef-more.js?v=10"></script>
+<script src="/static/reef/js/reef-calendar.js?v=8"></script>
+<script src="/static/reef/js/reef-costs.js?v=10"></script>
+
+</body>
+</html>

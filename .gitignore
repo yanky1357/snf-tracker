@@ -10,3 +10,9 @@ __pycache__/
 
 # Mac
 .DS_Store
+
+# Node / Capacitor
+node_modules/
+ios/
+android/
+.capacitor/
