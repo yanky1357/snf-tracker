@@ -1282,7 +1282,7 @@ def cost_wizard_submit():
                 INSERT INTO cost_wizard_profile (user_id, category, question_key, answer_value, skipped)
                 VALUES (?, ?, ?, ?, ?)
             ''', [uid, ans.get('category', ''), ans.get('question_key', ''),
-                  ans.get('answer_value', ''), 1 if ans.get('skipped') else 0])
+                  str(ans.get('answer_value', '')), 1 if ans.get('skipped') else 0])
 
         # Get user profile for calculation
         user = db_fetchone(conn, '''
@@ -1317,6 +1317,11 @@ def cost_wizard_submit():
 
         total = sum(c['monthly_amount'] for c in costs)
         return jsonify({'ok': True, 'costs': costs, 'total': total})
+    except Exception as e:
+        conn.rollback()
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Calculation failed: {str(e)}'}), 500
     finally:
         conn.close()
 
