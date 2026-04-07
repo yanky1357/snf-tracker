@@ -29,6 +29,20 @@ from reef_ai import (build_system_prompt, extract_params_from_response, clean_re
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.environ.get('SECRET_KEY', 'reefpilot-dev-key-change-in-prod')
 
+# Custom JSON encoder to handle Postgres date/datetime objects
+from flask.json.provider import DefaultJSONProvider
+class CustomJSONProvider(DefaultJSONProvider):
+    def default(self, o):
+        if isinstance(o, datetime):
+            return o.isoformat()
+        if isinstance(o, date):
+            return o.isoformat()
+        if isinstance(o, timedelta):
+            return str(o)
+        return super().default(o)
+app.json_provider_class = CustomJSONProvider
+app.json = CustomJSONProvider(app)
+
 REEF_STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'reef')
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'tank_photos')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -73,6 +87,30 @@ def rate_limit(key_prefix, max_requests=5, window_seconds=300):
         return False, retry_after
     _rate_buckets[key].append(now)
     return True, 0
+
+
+# ── Date helpers ──────────────────────────────────────────────────────────
+
+def to_date(val):
+    """Convert a value to a date object. Postgres returns date objects, SQLite returns strings."""
+    if val is None:
+        return None
+    if isinstance(val, date) and not isinstance(val, datetime):
+        return val
+    if isinstance(val, datetime):
+        return val.date()
+    return date.fromisoformat(str(val))
+
+
+def to_date_str(val):
+    """Convert a value to an ISO date string."""
+    if val is None:
+        return None
+    if isinstance(val, str):
+        return val
+    if isinstance(val, (date, datetime)):
+        return val.isoformat() if isinstance(val, date) else val.date().isoformat()
+    return str(val)
 
 
 # ── Email helpers ──────────────────────────────────────────────────────────
@@ -986,18 +1024,20 @@ def dashboard():
 
         due_today = []
         for t in maint_due:
+            nd = to_date(t['next_due'])
             due_today.append({
                 'id': t['id'], 'source': 'maintenance',
                 'title': t['task_name'], 'frequency': t['frequency'],
-                'next_due': t['next_due'], 'category': 'maintenance',
-                'overdue': t['next_due'] < today_str,
+                'next_due': to_date_str(t['next_due']), 'category': 'maintenance',
+                'overdue': nd < today if nd else False,
             })
         for t in cal_due:
+            nd = to_date(t['next_due'])
             due_today.append({
                 'id': t['id'], 'source': 'calendar',
                 'title': t['title'], 'frequency': t['frequency'],
-                'next_due': t['next_due'], 'category': t.get('category', 'other'),
-                'overdue': t['next_due'] < today_str,
+                'next_due': to_date_str(t['next_due']), 'category': t.get('category', 'other'),
+                'overdue': nd < today if nd else False,
             })
         due_today.sort(key=lambda x: (not x['overdue'], x['next_due']))
 
@@ -1011,7 +1051,7 @@ def dashboard():
 
         upcoming_tasks = [{'id': t['id'], 'source': 'maintenance',
             'title': t['task_name'], 'frequency': t['frequency'],
-            'next_due': t['next_due']} for t in upcoming_maint]
+            'next_due': to_date_str(t['next_due'])} for t in upcoming_maint]
 
         # Has maintenance set up?
         maint_count = db_fetchone(conn, 'SELECT COUNT(*) as cnt FROM maintenance_schedule WHERE user_id = ?', [uid])
@@ -1636,20 +1676,22 @@ def get_tasks_upcoming():
         day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
         def classify(task):
-            nd = task['next_due']
-            if nd < today_str:
-                diff = (today - date.fromisoformat(nd)).days
+            nd_date = to_date(task['next_due'])
+            task['next_due'] = nd_date.isoformat() if nd_date else ''
+            if not nd_date:
+                return
+            if nd_date < today:
+                diff = (today - nd_date).days
                 task['days_overdue'] = diff
                 overdue.append(task)
-            elif nd == today_str:
+            elif nd_date == today:
                 today_tasks.append(task)
             else:
-                d = date.fromisoformat(nd)
-                diff = (d - today).days
+                diff = (nd_date - today).days
                 if diff == 1:
                     task['due_label'] = 'Tomorrow'
                 else:
-                    task['due_label'] = day_names[d.weekday()]
+                    task['due_label'] = day_names[nd_date.weekday()]
                 upcoming.append(task)
 
         for t in cal_rows:
@@ -1708,7 +1750,7 @@ def get_tasks_week():
                 'source': 'calendar',
                 'title': t['title'],
                 'frequency': t['frequency'],
-                'next_due': t['next_due'],
+                'next_due': to_date_str(t['next_due']),
                 'category': t.get('category', 'other'),
             })
         for t in maint_rows:
@@ -1717,7 +1759,7 @@ def get_tasks_week():
                 'source': 'maintenance',
                 'title': t['task_name'],
                 'frequency': t['frequency'],
-                'next_due': t['next_due'],
+                'next_due': to_date_str(t['next_due']),
                 'category': 'maintenance',
                 'notes': t.get('notes', ''),
             })
@@ -1757,19 +1799,21 @@ def get_tasks_today():
 
         tasks = []
         for t in cal_rows:
+            nd = to_date(t['next_due'])
             tasks.append({
                 'id': t['id'], 'source': 'calendar',
                 'title': t['title'], 'frequency': t['frequency'],
-                'next_due': t['next_due'], 'category': t.get('category', 'other'),
-                'overdue': t['next_due'] < today_str,
+                'next_due': to_date_str(t['next_due']), 'category': t.get('category', 'other'),
+                'overdue': nd < today if nd else False,
             })
         for t in maint_rows:
+            nd = to_date(t['next_due'])
             tasks.append({
                 'id': t['id'], 'source': 'maintenance',
                 'title': t['task_name'], 'frequency': t['frequency'],
-                'next_due': t['next_due'], 'category': 'maintenance',
+                'next_due': to_date_str(t['next_due']), 'category': 'maintenance',
                 'notes': t.get('notes', ''),
-                'overdue': t['next_due'] < today_str,
+                'overdue': nd < today if nd else False,
             })
 
         tasks.sort(key=lambda x: (not x['overdue'], x['next_due']))
@@ -1798,7 +1842,7 @@ def complete_unified_task():
             if not task:
                 return jsonify({'error': 'Task not found'}), 404
             # Use the later of today or current next_due as base, so we always advance forward
-            task_due = date.fromisoformat(task['next_due']) if task['next_due'] else today
+            task_due = to_date(task['next_due']) if task['next_due'] else today
             base = max(today, task_due)
             next_due = _calculate_next_due(task['frequency'], from_date=base)
             db_execute(conn, '''
@@ -1822,7 +1866,7 @@ def complete_unified_task():
                 ''', [uid, task['title'], source])
                 db_execute(conn, 'DELETE FROM calendar_tasks WHERE id = ?', [tid])
             else:
-                task_due = date.fromisoformat(task['next_due']) if task['next_due'] else today
+                task_due = to_date(task['next_due']) if task['next_due'] else today
                 base = max(today, task_due)
                 next_due = _calculate_next_due(task['frequency'], from_date=base)
                 db_execute(conn, '''
