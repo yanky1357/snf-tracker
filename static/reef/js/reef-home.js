@@ -225,12 +225,12 @@ function dismissInsight(btn) {
 
 const DASH_CATEGORY_ICONS = {
     water_change: '\u{1F4A7}',
-    testing: '\u{1F9EA}',
-    cleaning: '\u{1F9F9}',
-    dosing: '\u2699\uFE0F',
+    testing: '\u{1F52C}',
+    cleaning: '\u2728',
+    dosing: '\u2697\uFE0F',
     feeding: '\u{1F41F}',
     maintenance: '\u{1F527}',
-    other: '\u{1F4CB}',
+    other: '\u{1F4DD}',
 };
 
 function renderDashDueToday(tasks) {

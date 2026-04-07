@@ -22,8 +22,9 @@
     --nav-height: 64px;
     --header-height: 52px;
     --safe-bottom: env(safe-area-inset-bottom, 0px);
-    --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.2), 0 0 1px rgba(255, 255, 255, 0.05) inset;
-    --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.3);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(0, 0, 0, 0.16), 0 0 1px rgba(255, 255, 255, 0.04) inset;
+    --shadow-elevated: 0 4px 12px rgba(0, 0, 0, 0.2), 0 12px 40px rgba(0, 0, 0, 0.28);
+    --shadow-high: 0 8px 24px rgba(0, 0, 0, 0.3), 0 20px 60px rgba(0, 0, 0, 0.35);
     --radius-card: 16px;
     --radius-sm: 12px;
     --radius-pill: 24px;
@@ -31,13 +32,18 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+html {
+    scroll-behavior: smooth;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
     background: var(--bg-deep);
     color: var(--text-primary);
     min-height: 100vh;
-    overscroll-behavior: none;
+    overscroll-behavior: contain;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     letter-spacing: -0.01em;
 }
 
@@ -149,13 +155,14 @@ input, select, textarea {
     font-size: 16px;
     color: var(--text-primary);
     outline: none;
-    transition: border-color 0.2s, background 0.2s;
+    transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
     width: 100%;
 }
 
-input:focus, select:focus {
+input:focus, select:focus, textarea:focus {
     border-color: var(--accent);
     background: rgba(0, 180, 216, 0.06);
+    box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.1), 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 input::placeholder {
@@ -204,28 +211,38 @@ input::placeholder {
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s, transform 0.15s;
+    transition: all 0.2s ease, transform 0.12s ease;
     color: var(--text-primary);
     background: rgba(255, 255, 255, 0.08);
     -webkit-tap-highlight-color: transparent;
 }
 
 .btn:active {
-    transform: scale(0.97);
+    transform: scale(0.94);
+    transition: transform 0.08s ease;
 }
 
 .btn-primary {
-    background: var(--accent);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
     color: #fff;
 }
 
 .btn-primary:hover {
-    background: var(--accent-dim);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
+    box-shadow: 0 0 16px rgba(0, 180, 216, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-primary:active {
+    transform: scale(0.94);
+    box-shadow: 0 0 8px rgba(0, 180, 216, 0.2);
+    transition: transform 0.08s ease;
 }
 
 .btn-primary:disabled {
-    opacity: 0.5;
+    opacity: 0.35;
     cursor: not-allowed;
+    filter: grayscale(0.3);
+    box-shadow: none;
 }
 
 .btn-full {
@@ -386,9 +403,16 @@ input::placeholder {
 
 .tab-content {
     padding: 20px;
-    animation: tabFadeIn 0.3s ease;
+    animation: tabCrossFade 0.35s ease;
 }
 
+@keyframes tabCrossFade {
+    0% { opacity: 0; transform: translateY(6px); }
+    40% { opacity: 0.4; }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Alias for backward compat */
 @keyframes tabFadeIn {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
@@ -403,9 +427,11 @@ input::placeholder {
 }
 
 .section-header h2, .section-header h3 {
-    font-size: 20px;
+    font-size: 13px;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
 }
 
 /* ── Bottom Nav ──────────────────────────────────────────────────────── */
@@ -441,6 +467,7 @@ input::placeholder {
     font-weight: 500;
     transition: color 0.2s, transform 0.15s;
     -webkit-tap-highlight-color: transparent;
+    position: relative;
 }
 
 .nav-tab:active {
@@ -449,6 +476,19 @@ input::placeholder {
 
 .nav-tab.active {
     color: var(--accent);
+}
+
+.nav-tab.active::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: var(--accent);
+    box-shadow: 0 0 8px rgba(0, 180, 216, 0.4);
 }
 
 .nav-tab svg {
@@ -655,7 +695,7 @@ input::placeholder {
 }
 
 .btn-send {
-    background: var(--accent);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
     border: none;
     border-radius: 50%;
     width: 44px;
@@ -666,11 +706,17 @@ input::placeholder {
     cursor: pointer;
     color: #fff;
     flex-shrink: 0;
-    transition: background 0.2s;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.12s;
+    box-shadow: var(--shadow-elevated);
 }
 
 .btn-send:hover {
-    background: var(--accent-dim);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
+    box-shadow: 0 0 16px rgba(0, 180, 216, 0.3), var(--shadow-elevated);
+}
+
+.btn-send:active {
+    transform: scale(0.92);
 }
 
 .btn-send:disabled {
@@ -687,13 +733,18 @@ input::placeholder {
 }
 
 .param-card {
-    background: var(--bg-card);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%);
     border-radius: var(--radius-card);
     padding: 16px;
     cursor: pointer;
-    transition: transform 0.15s, box-shadow 0.2s;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
     border: none;
     box-shadow: var(--shadow-card);
+}
+
+.param-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card), 0 6px 20px rgba(0, 0, 0, 0.15);
 }
 
 .param-card:active {
@@ -759,7 +810,7 @@ input::placeholder {
 }
 
 .calc-card {
-    background: var(--bg-card);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%);
     border-radius: var(--radius-card);
     padding: 20px;
     border: none;
@@ -800,7 +851,7 @@ input::placeholder {
 /* ── Tank ─────────────────────────────────────────────────────────────── */
 
 .tank-profile-card {
-    background: var(--bg-card);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%);
     border-radius: var(--radius-card);
     padding: 20px;
     border: none;
@@ -837,7 +888,7 @@ input::placeholder {
 }
 
 .item-card {
-    background: var(--bg-card);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%);
     border-radius: var(--radius-card);
     padding: 16px;
     display: flex;
@@ -845,6 +896,12 @@ input::placeholder {
     align-items: center;
     border: none;
     box-shadow: var(--shadow-card);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.item-card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-card), 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .item-info {
@@ -877,11 +934,15 @@ input::placeholder {
 
 .empty-state {
     text-align: center;
-    padding: 32px 24px;
+    padding: 40px 28px;
     color: var(--text-muted);
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 500;
     opacity: 0.7;
+    background: rgba(255, 255, 255, 0.015);
+    border: 1.5px dashed rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-card);
+    line-height: 1.5;
 }
 
 /* ── Settings ────────────────────────────────────────────────────────── */
@@ -894,7 +955,7 @@ input::placeholder {
 }
 
 .settings-item {
-    background: var(--bg-card);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%);
     border-radius: var(--radius-card);
     padding: 16px 18px;
     display: flex;
@@ -1087,6 +1148,12 @@ input::placeholder {
     align-items: flex-end;
     justify-content: center;
     padding-bottom: var(--safe-bottom);
+    animation: modalOverlayIn 0.25s ease;
+}
+
+@keyframes modalOverlayIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .modal-content {
@@ -1097,7 +1164,13 @@ input::placeholder {
     max-width: 480px;
     max-height: 80vh;
     overflow-y: auto;
-    box-shadow: 0 -4px 40px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--shadow-high);
+    animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalSlideUp {
+    from { transform: translateY(100%); opacity: 0.5; }
+    to { transform: translateY(0); opacity: 1; }
 }
 
 .modal-large {
@@ -1151,22 +1224,37 @@ input::placeholder {
 }
 
 .toast {
-    background: rgba(20, 35, 50, 0.9);
+    background: rgba(20, 35, 50, 0.92);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: none;
-    border-radius: var(--radius-pill);
-    padding: 12px 24px;
+    border-radius: var(--radius-sm);
+    padding: 12px 20px 12px 16px;
     font-size: 14px;
     font-weight: 500;
     color: var(--text-primary);
     box-shadow: var(--shadow-elevated);
     animation: toastIn 0.3s ease;
     white-space: nowrap;
+    position: relative;
+    overflow: hidden;
+}
+
+.toast::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--accent);
+    border-radius: 3px 0 0 3px;
 }
 
 .toast.success { color: var(--success); }
+.toast.success::before { background: var(--success); }
 .toast.error { color: var(--danger); }
+.toast.error::before { background: var(--danger); }
 
 @keyframes toastIn {
     from { opacity: 0; transform: translateY(-10px); }
@@ -1314,6 +1402,7 @@ input::placeholder {
     font-size: 36px;
     font-weight: 800;
     color: var(--text-primary);
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
 .health-score-label {
@@ -1382,12 +1471,12 @@ input::placeholder {
 }
 
 .dash-section-title {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
     margin-bottom: 12px;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
 }
 
 /* ── Insight Cards ───────────────────────────────────────────────────── */
@@ -1399,7 +1488,7 @@ input::placeholder {
 }
 
 .insight-card {
-    background: var(--bg-card);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%);
     border: none;
     border-left: 3px solid var(--accent);
     border-radius: var(--radius-card);
@@ -1438,7 +1527,7 @@ input::placeholder {
 }
 
 .maint-task-item {
-    background: var(--bg-card);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%);
     border: none;
     border-radius: var(--radius-card);
     padding: 14px 16px;
@@ -1489,7 +1578,7 @@ input::placeholder {
 }
 
 .milestone-card {
-    background: var(--bg-card);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%);
     border: none;
     border-radius: var(--radius-card);
     padding: 16px 18px;
@@ -1545,7 +1634,7 @@ input::placeholder {
 /* ── Cost Summary Card (Dashboard) ───────────────────────────────────── */
 
 .cost-summary-card {
-    background: var(--bg-card);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%);
     border: none;
     border-radius: var(--radius-card);
     padding: 18px;
@@ -1553,6 +1642,12 @@ input::placeholder {
     justify-content: space-between;
     align-items: center;
     box-shadow: var(--shadow-card);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cost-summary-card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-card), 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .cost-summary-label {
@@ -1585,14 +1680,19 @@ input::placeholder {
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    background: var(--bg-card);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%);
     border: none;
     border-radius: var(--radius-card);
     padding: 14px 8px;
     cursor: pointer;
     box-shadow: var(--shadow-card);
-    transition: transform 0.15s, background 0.2s;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s;
     -webkit-tap-highlight-color: transparent;
+}
+
+.quick-action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card), 0 6px 20px rgba(0, 0, 0, 0.15);
 }
 
 .quick-action-btn:active {
@@ -1660,7 +1760,7 @@ input::placeholder {
     display: flex;
     align-items: center;
     gap: 12px;
-    background: var(--bg-card);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%);
     border-radius: var(--radius-card);
     padding: 12px 14px;
     box-shadow: var(--shadow-card);
@@ -2144,7 +2244,7 @@ input::placeholder {
 }
 
 .more-card {
-    background: var(--bg-card);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%);
     border: none;
     border-radius: var(--radius-card);
     padding: 28px 16px;
@@ -2153,9 +2253,14 @@ input::placeholder {
     align-items: center;
     gap: 10px;
     cursor: pointer;
-    transition: transform 0.15s;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
     color: var(--text-primary);
     box-shadow: var(--shadow-card);
+}
+
+.more-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card), 0 6px 20px rgba(0, 0, 0, 0.15);
 }
 
 .more-card:active {
@@ -2267,21 +2372,23 @@ input::placeholder {
 }
 
 .wizard-preset-btn {
-    background: var(--card-bg);
-    border: 2px solid var(--border);
-    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
     padding: 14px 8px;
     color: var(--text);
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: all 0.2s ease;
 }
 
 .wizard-preset-btn.selected,
 .wizard-preset-btn:active {
     border-color: var(--accent);
-    box-shadow: 0 0 12px rgba(0, 180, 216, 0.25);
+    background: rgba(0, 180, 216, 0.1);
+    color: var(--accent);
+    box-shadow: 0 0 12px rgba(0, 180, 216, 0.2);
 }
 
 .wizard-custom-input {
@@ -2329,17 +2436,27 @@ input::placeholder {
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease;
 }
 
 .wizard-card.selected {
     border-color: var(--accent);
-    box-shadow: 0 0 16px rgba(0, 180, 216, 0.2);
+    border-width: 2.5px;
+    box-shadow: 0 0 20px rgba(0, 180, 216, 0.25), 0 0 0 1px rgba(0, 180, 216, 0.1);
+    transform: scale(1.02);
+    background: rgba(0, 180, 216, 0.04);
 }
 
 .wizard-card-emoji {
     font-size: 32px;
     line-height: 1;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 50%;
 }
 
 .wizard-card-title {
@@ -2804,14 +2921,19 @@ input::placeholder {
     width: 52px;
     height: 52px;
     border-radius: 50%;
-    background: var(--accent);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
     color: #fff;
     border: none;
     font-size: 28px;
     font-weight: 300;
     cursor: pointer;
-    box-shadow: 0 4px 16px rgba(0, 180, 216, 0.4);
+    box-shadow: var(--shadow-elevated), 0 4px 16px rgba(0, 180, 216, 0.35);
     z-index: 50;
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.cal-fab:active {
+    transform: scale(0.92);
 }
 
 /* ── Task List (new unified view) ─────────────────────────────────── */
@@ -3068,4 +3190,67 @@ input::placeholder {
     font-size: 12px;
     color: var(--text-secondary);
     margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ENHANCED ANIMATIONS & POLISH
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Staggered fade-up for lists ───────────────────────────────────────── */
+
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.param-grid > *,
+.insights-list > *,
+.maintenance-list > *,
+.milestones-list > *,
+.activity-list > *,
+.item-list > *,
+.task-list > .cal-task-card,
+.more-grid > * {
+    animation: fadeUp 0.35s ease both;
+}
+
+.param-grid > *:nth-child(1), .insights-list > *:nth-child(1), .maintenance-list > *:nth-child(1), .milestones-list > *:nth-child(1), .activity-list > *:nth-child(1), .item-list > *:nth-child(1), .more-grid > *:nth-child(1) { animation-delay: 0s; }
+.param-grid > *:nth-child(2), .insights-list > *:nth-child(2), .maintenance-list > *:nth-child(2), .milestones-list > *:nth-child(2), .activity-list > *:nth-child(2), .item-list > *:nth-child(2), .more-grid > *:nth-child(2) { animation-delay: 0.04s; }
+.param-grid > *:nth-child(3), .insights-list > *:nth-child(3), .maintenance-list > *:nth-child(3), .milestones-list > *:nth-child(3), .activity-list > *:nth-child(3), .item-list > *:nth-child(3), .more-grid > *:nth-child(3) { animation-delay: 0.08s; }
+.param-grid > *:nth-child(4), .insights-list > *:nth-child(4), .maintenance-list > *:nth-child(4), .milestones-list > *:nth-child(4), .activity-list > *:nth-child(4), .item-list > *:nth-child(4), .more-grid > *:nth-child(4) { animation-delay: 0.12s; }
+.param-grid > *:nth-child(5), .insights-list > *:nth-child(5), .maintenance-list > *:nth-child(5), .milestones-list > *:nth-child(5), .activity-list > *:nth-child(5), .item-list > *:nth-child(5), .more-grid > *:nth-child(5) { animation-delay: 0.16s; }
+.param-grid > *:nth-child(6), .insights-list > *:nth-child(6), .maintenance-list > *:nth-child(6), .milestones-list > *:nth-child(6), .activity-list > *:nth-child(6), .item-list > *:nth-child(6), .more-grid > *:nth-child(6) { animation-delay: 0.2s; }
+.param-grid > *:nth-child(n+7), .insights-list > *:nth-child(n+7), .maintenance-list > *:nth-child(n+7), .milestones-list > *:nth-child(n+7), .activity-list > *:nth-child(n+7), .item-list > *:nth-child(n+7), .more-grid > *:nth-child(n+7) { animation-delay: 0.24s; }
+
+/* ── Button press scale-bounce ─────────────────────────────────────────── */
+
+@keyframes btnBounce {
+    0% { transform: scale(1); }
+    40% { transform: scale(0.95); }
+    70% { transform: scale(1.01); }
+    100% { transform: scale(1); }
+}
+
+/* ── Skeleton loading ──────────────────────────────────────────────────── */
+
+.skeleton {
+    background: linear-gradient(90deg, var(--bg-card) 25%, rgba(255,255,255,0.06) 50%, var(--bg-card) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 8px;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* ── Reduce motion for accessibility ───────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }

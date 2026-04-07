@@ -184,12 +184,12 @@ function selectCostPill(btn) {
 }
 
 const PURCHASE_CATEGORY_ICONS = {
-    'Livestock': { icon: '🐠', bg: 'rgba(0,180,216,0.12)' },
+    'Livestock': { icon: '🐟', bg: 'rgba(0,180,216,0.12)' },
     'Equipment': { icon: '🔧', bg: 'rgba(255,179,0,0.12)' },
-    'Supplements': { icon: '🧪', bg: 'rgba(171,71,188,0.12)' },
+    'Supplements': { icon: '🔬', bg: 'rgba(171,71,188,0.12)' },
     'Food': { icon: '🍽️', bg: 'rgba(0,200,83,0.12)' },
     'Salt': { icon: '🧂', bg: 'rgba(38,166,154,0.12)' },
-    'Testing': { icon: '📊', bg: 'rgba(255,82,82,0.12)' },
+    'Testing': { icon: '📈', bg: 'rgba(255,82,82,0.12)' },
     'Other': { icon: '📦', bg: 'rgba(168,184,200,0.12)' },
 };
 
