@@ -111,6 +111,12 @@ def send_email(to, subject, html_body):
         resp = urllib.request.urlopen(req, timeout=10)
         print(f"Email sent to {to}: {resp.read().decode()}")
         return True
+    except urllib.request.HTTPError as e:
+        error_body = e.read().decode() if e.fp else 'no body'
+        print(f"Email send error: {e.code} {e.reason} — {error_body}")
+        print(f"Email FROM: {os.environ.get('FROM_EMAIL', 'NOT SET')}")
+        print(f"Email TO: {to}")
+        return False
     except Exception as e:
         print(f"Email send error: {e}")
         return False
