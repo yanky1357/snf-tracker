@@ -85,43 +85,36 @@ def generate_code():
 
 
 def send_email(to, subject, html_body):
-    """Send email via Resend HTTP API. Returns True on success."""
-    if not RESEND_API_KEY:
-        # Dev mode — log code to console instead of sending
+    """Send email via Resend HTTP API using http.client. Returns True on success."""
+    api_key = os.environ.get('RESEND_API_KEY', '')
+    if not api_key:
         print(f"[DEV EMAIL] To: {to}, Subject: {subject}")
         print(f"[DEV EMAIL] Body: {html_body}")
         return True
     try:
-        import urllib.request
+        import http.client
         from_email = os.environ.get('FROM_EMAIL', 'ReefPilot <onboarding@resend.dev>')
-        api_key = os.environ.get('RESEND_API_KEY', '')
-        print(f"[EMAIL DEBUG] Key starts with: {api_key[:15]}... (len={len(api_key)})")
-        print(f"[EMAIL DEBUG] FROM: {from_email}")
-        print(f"[EMAIL DEBUG] TO: {to}")
-        data = json.dumps({
+        payload = json.dumps({
             'from': from_email,
             'to': [to],
             'subject': subject,
             'html': html_body,
-        }).encode('utf-8')
-        req = urllib.request.Request(
-            'https://api.resend.com/emails',
-            data=data,
-            headers={
-                'Authorization': f'Bearer {api_key}',
-                'Content-Type': 'application/json',
-            },
-            method='POST'
-        )
-        resp = urllib.request.urlopen(req, timeout=10)
-        print(f"Email sent to {to}: {resp.read().decode()}")
-        return True
-    except urllib.request.HTTPError as e:
-        error_body = e.read().decode() if e.fp else 'no body'
-        print(f"Email send error: {e.code} {e.reason} — {error_body}")
-        print(f"Email FROM: {os.environ.get('FROM_EMAIL', 'NOT SET')}")
-        print(f"Email TO: {to}")
-        return False
+        })
+        conn = http.client.HTTPSConnection('api.resend.com', timeout=10)
+        conn.request('POST', '/emails', body=payload, headers={
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json',
+            'User-Agent': 'ReefPilot/1.0',
+        })
+        resp = conn.getresponse()
+        body = resp.read().decode()
+        conn.close()
+        if resp.status == 200:
+            print(f"Email sent to {to}: {body}")
+            return True
+        else:
+            print(f"Email send error: {resp.status} {resp.reason} — {body}")
+            return False
     except Exception as e:
         print(f"Email send error: {e}")
         return False
