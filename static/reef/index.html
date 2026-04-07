@@ -169,7 +169,7 @@
                 </div>
                 <div class="wizard-custom-input">
                     <div class="input-row">
-                        <input type="text" id="wizard-tank-size" placeholder="Custom size" inputmode="numeric" pattern="[0-9]*" class="input-large">
+                        <input type="text" id="wizard-tank-size" placeholder="Custom size" inputmode="numeric" class="input-large">
                         <span class="input-suffix">gallons</span>
                     </div>
                 </div>
@@ -197,7 +197,7 @@
                     </div>
                     <div class="wizard-custom-input" style="margin-top:10px">
                         <div class="input-row">
-                            <input type="text" id="wizard-sump-size" placeholder="Custom size" inputmode="numeric" pattern="[0-9]*" class="input-large">
+                            <input type="text" id="wizard-sump-size" placeholder="Custom size" inputmode="numeric" class="input-large">
                             <span class="input-suffix">gallons</span>
                         </div>
                     </div>
@@ -261,7 +261,7 @@
             <div class="wizard-step" data-step="5">
                 <div class="wizard-number-input">
                     <button class="wizard-pm-btn" onclick="adjustFishCount(-1)">-</button>
-                    <input type="text" id="wizard-fish-count" value="0" inputmode="numeric" pattern="[0-9]*" class="input-large wizard-num-field">
+                    <input type="text" id="wizard-fish-count" value="0" inputmode="numeric" class="input-large wizard-num-field">
                     <button class="wizard-pm-btn" onclick="adjustFishCount(1)">+</button>
                 </div>
                 <div class="wizard-option-grid" style="margin-top:16px">
@@ -654,7 +654,7 @@
                                 <input type="text" id="cost-quick-desc" placeholder="What did you buy?" style="flex:2" required>
                                 <div class="input-row" style="flex:1;margin:0">
                                     <span class="input-suffix">$</span>
-                                    <input type="text" id="cost-quick-amount" placeholder="0.00" inputmode="decimal" pattern="[0-9]*\.?[0-9]*" required style="flex:1">
+                                    <input type="text" id="cost-quick-amount" placeholder="0.00" inputmode="decimal" required style="flex:1">
                                 </div>
                             </div>
                             <input type="date" id="cost-quick-date" style="margin-top:8px;width:100%">
@@ -697,7 +697,7 @@
                         <div class="form-group">
                             <label>Enter your light's wattage</label>
                             <div class="input-row">
-                                <input type="text" id="cw-light-wattage" placeholder="e.g. 150" inputmode="numeric" pattern="[0-9]*" style="flex:1">
+                                <input type="text" id="cw-light-wattage" placeholder="e.g. 150" inputmode="numeric" style="flex:1">
                                 <span class="input-suffix">watts</span>
                             </div>
                         </div>
@@ -739,7 +739,7 @@
                         <button class="wizard-preset-btn cw-preset" data-key="heater_wattage" data-val="500" onclick="cwPreset(this)">500W</button>
                     </div>
                     <div class="input-row" style="margin-top:12px">
-                        <input type="text" id="cw-heater-wattage" placeholder="Custom" inputmode="numeric" pattern="[0-9]*" style="flex:1" oninput="cwInput('heater_wattage',this.value)">
+                        <input type="text" id="cw-heater-wattage" placeholder="Custom" inputmode="numeric" style="flex:1" oninput="cwInput('heater_wattage',this.value)">
                         <span class="input-suffix">watts</span>
                     </div>
                 </div>
@@ -750,7 +750,7 @@
                     <div class="form-group" style="margin-bottom:16px">
                         <label>Return pump wattage</label>
                         <div class="input-row">
-                            <input type="text" id="cw-return-pump" placeholder="e.g. 40" inputmode="numeric" pattern="[0-9]*" style="flex:1" oninput="cwInput('return_pump_wattage',this.value)">
+                            <input type="text" id="cw-return-pump" placeholder="e.g. 40" inputmode="numeric" style="flex:1" oninput="cwInput('return_pump_wattage',this.value)">
                             <span class="input-suffix">watts</span>
                         </div>
                     </div>
@@ -766,7 +766,7 @@
                     <div class="form-group">
                         <label>Wattage per powerhead</label>
                         <div class="input-row">
-                            <input type="text" id="cw-ph-watts" placeholder="e.g. 15" inputmode="numeric" pattern="[0-9]*" style="flex:1" oninput="cwInput('powerhead_wattage',this.value)">
+                            <input type="text" id="cw-ph-watts" placeholder="e.g. 15" inputmode="numeric" style="flex:1" oninput="cwInput('powerhead_wattage',this.value)">
                             <span class="input-suffix">watts each</span>
                         </div>
                     </div>
@@ -782,7 +782,7 @@
                         <button class="wizard-preset-btn cw-preset" data-key="skimmer_wattage" data-val="50" onclick="cwPreset(this)">50W</button>
                     </div>
                     <div class="input-row" style="margin-top:12px">
-                        <input type="text" id="cw-skimmer-wattage" placeholder="Custom" inputmode="numeric" pattern="[0-9]*" style="flex:1" oninput="cwInput('skimmer_wattage',this.value)">
+                        <input type="text" id="cw-skimmer-wattage" placeholder="Custom" inputmode="numeric" style="flex:1" oninput="cwInput('skimmer_wattage',this.value)">
                         <span class="input-suffix">watts</span>
                     </div>
                 </div>
@@ -861,7 +861,7 @@
                     <div class="form-group">
                         <label>Estimated total daily dosing (ml)</label>
                         <div class="input-row">
-                            <input type="text" id="cw-dosing-ml" placeholder="e.g. 50" inputmode="numeric" pattern="[0-9]*" style="flex:1" oninput="cwInput('dosing_daily_ml',this.value)">
+                            <input type="text" id="cw-dosing-ml" placeholder="e.g. 50" inputmode="numeric" style="flex:1" oninput="cwInput('dosing_daily_ml',this.value)">
                             <span class="input-suffix">ml/day</span>
                         </div>
                         <button class="btn btn-small btn-outline" style="margin-top:8px;align-self:flex-start" onclick="cwInput('dosing_daily_ml','not_sure')">Not sure — estimate for me</button>
@@ -915,7 +915,7 @@
                             <label>How much do you pay per gallon?</label>
                             <div class="input-row">
                                 <span class="input-suffix">$</span>
-                                <input type="text" id="cw-rodi-price" placeholder="0.50" inputmode="decimal" pattern="[0-9]*\.?[0-9]*" style="flex:1" oninput="cwInput('rodi_buy_price',this.value)">
+                                <input type="text" id="cw-rodi-price" placeholder="0.50" inputmode="decimal" style="flex:1" oninput="cwInput('rodi_buy_price',this.value)">
                                 <span class="input-suffix">/gal</span>
                             </div>
                         </div>
@@ -929,14 +929,14 @@
                         <label>How much do you pay for a bucket of salt? (optional)</label>
                         <div class="input-row">
                             <span class="input-suffix">$</span>
-                            <input type="text" id="cw-salt-price" placeholder="Use average" inputmode="decimal" pattern="[0-9]*\.?[0-9]*" style="flex:1" oninput="cwInput('salt_bucket_price',this.value)">
+                            <input type="text" id="cw-salt-price" placeholder="Use average" inputmode="decimal" style="flex:1" oninput="cwInput('salt_bucket_price',this.value)">
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Electricity rate ($/kWh)</label>
                         <div class="input-row">
                             <span class="input-suffix">$</span>
-                            <input type="text" id="cw-elec-rate" placeholder="0.15" inputmode="decimal" pattern="[0-9]*\.?[0-9]*" value="0.15" style="flex:1" oninput="cwInput('electricity_rate',this.value)">
+                            <input type="text" id="cw-elec-rate" placeholder="0.15" inputmode="decimal" value="0.15" style="flex:1" oninput="cwInput('electricity_rate',this.value)">
                             <span class="input-suffix">/kWh</span>
                         </div>
                         <div style="font-size:12px;color:var(--text-muted);margin-top:4px">US average is ~$0.15/kWh</div>
@@ -1209,7 +1209,7 @@
                         </div>
                         <div class="form-group">
                             <label>Quantity</label>
-                            <input type="text" id="ls-quantity" value="1" inputmode="numeric" pattern="[0-9]*">
+                            <input type="text" id="ls-quantity" value="1" inputmode="numeric">
                         </div>
                         <button type="submit" class="btn btn-primary btn-full">Add</button>
                     </form>
@@ -1267,7 +1267,7 @@
                         </div>
                         <div class="form-group">
                             <label>Tank Size (gallons)</label>
-                            <input type="text" id="edit-tank-size" inputmode="numeric" pattern="[0-9]*">
+                            <input type="text" id="edit-tank-size" inputmode="numeric">
                         </div>
                         <div class="form-group">
                             <label>Tank Type</label>
@@ -1287,7 +1287,7 @@
                         </div>
                         <div class="form-group">
                             <label>Sump Size (gallons)</label>
-                            <input type="text" id="edit-sump-size" inputmode="numeric" pattern="[0-9]*">
+                            <input type="text" id="edit-sump-size" inputmode="numeric">
                         </div>
                         <button type="submit" class="btn btn-primary btn-full">Save</button>
                     </form>
@@ -1346,14 +1346,14 @@
                     <div class="form-group">
                         <label>Water Volume</label>
                         <div class="input-row">
-                            <input type="text" id="calc-salt-volume" placeholder="e.g. 10" inputmode="decimal" pattern="[0-9]*\.?[0-9]*">
+                            <input type="text" id="calc-salt-volume" placeholder="e.g. 10" inputmode="decimal">
                             <span class="input-suffix">gallons</span>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Target Salinity</label>
                         <div class="input-row">
-                            <input type="text" id="calc-salt-sg" value="1.026" inputmode="decimal" pattern="[0-9]*\.?[0-9]*">
+                            <input type="text" id="calc-salt-sg" value="1.026" inputmode="decimal">
                             <span class="input-suffix">SG</span>
                         </div>
                     </div>
@@ -1374,14 +1374,14 @@
                     <div class="form-group">
                         <label>Total System Volume</label>
                         <div class="input-row">
-                            <input type="text" id="calc-wc-volume" placeholder="e.g. 100" inputmode="numeric" pattern="[0-9]*">
+                            <input type="text" id="calc-wc-volume" placeholder="e.g. 100" inputmode="numeric">
                             <span class="input-suffix">gallons</span>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Change Percentage</label>
                         <div class="input-row">
-                            <input type="text" id="calc-wc-percent" value="10" inputmode="numeric" pattern="[0-9]*">
+                            <input type="text" id="calc-wc-percent" value="10" inputmode="numeric">
                             <span class="input-suffix">%</span>
                         </div>
                     </div>
@@ -1396,17 +1396,17 @@
                     <div class="form-group">
                         <label>System Volume</label>
                         <div class="input-row">
-                            <input type="text" id="calc-dose-volume" placeholder="e.g. 100" inputmode="numeric" pattern="[0-9]*">
+                            <input type="text" id="calc-dose-volume" placeholder="e.g. 100" inputmode="numeric">
                             <span class="input-suffix">gallons</span>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Current Alk (dKH)</label>
-                        <input type="text" id="calc-dose-current-alk" placeholder="e.g. 7.0" inputmode="decimal" pattern="[0-9]*\.?[0-9]*">
+                        <input type="text" id="calc-dose-current-alk" placeholder="e.g. 7.0" inputmode="decimal">
                     </div>
                     <div class="form-group">
                         <label>Target Alk (dKH)</label>
-                        <input type="text" id="calc-dose-target-alk" value="8.0" inputmode="decimal" pattern="[0-9]*\.?[0-9]*">
+                        <input type="text" id="calc-dose-target-alk" value="8.0" inputmode="decimal">
                     </div>
                     <button class="btn btn-primary btn-full" onclick="calcDosing()">Calculate</button>
                     <div id="dose-result" class="calc-result hidden"></div>
@@ -1442,7 +1442,7 @@
                         </div>
                         <div class="form-group">
                             <label>Amount ($)</label>
-                            <input type="text" id="cost-amount" inputmode="decimal" pattern="[0-9]*\.?[0-9]*" required placeholder="0.00">
+                            <input type="text" id="cost-amount" inputmode="decimal" required placeholder="0.00">
                         </div>
                         <div class="form-group">
                             <label>Date</label>
