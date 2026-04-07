@@ -19,7 +19,7 @@ load_dotenv()
 from flask import Flask, request, jsonify, send_from_directory, send_file, session
 from werkzeug.utils import secure_filename
 
-from reef_db import get_db, db_execute, db_fetchall, db_fetchone, db_fetchval, init_db
+from reef_db import get_db, db_execute, db_fetchall, db_fetchone, db_fetchval, init_db, USE_POSTGRES
 from reef_data import SALT_BRANDS, PARAMETER_TYPES, PARAMETER_RANGES, TANK_TYPES, DOSING_PRICES, FOOD_PRICES, REEF_LIGHTS
 from reef_costs import calculate_all_costs
 from reef_ai import (build_system_prompt, extract_params_from_response, clean_response,
@@ -815,12 +815,20 @@ def calculate_health_score(conn, user_id):
     stability_params = ['alkalinity', 'calcium', 'magnesium']
     stable_count = 0
     for ptype in stability_params:
-        readings = db_fetchall(conn, '''
-            SELECT value FROM parameter_logs
-            WHERE user_id = ? AND parameter_type = ?
-            AND logged_at >= datetime('now', '-30 days')
-            ORDER BY logged_at ASC
-        ''', [user_id, ptype])
+        if USE_POSTGRES:
+            readings = db_fetchall(conn, '''
+                SELECT value FROM parameter_logs
+                WHERE user_id = ? AND parameter_type = ?
+                AND logged_at >= CURRENT_TIMESTAMP - interval '30 days'
+                ORDER BY logged_at ASC
+            ''', [user_id, ptype])
+        else:
+            readings = db_fetchall(conn, '''
+                SELECT value FROM parameter_logs
+                WHERE user_id = ? AND parameter_type = ?
+                AND logged_at >= datetime('now', '-30 days')
+                ORDER BY logged_at ASC
+            ''', [user_id, ptype])
         if len(readings) >= 3:
             values = [r['value'] for r in readings]
             avg = sum(values) / len(values)
@@ -833,10 +841,16 @@ def calculate_health_score(conn, user_id):
         score += 10  # All key params are stable
 
     # Maintenance bonus: +10 if all tasks are up to date
-    overdue = db_fetchone(conn, '''
-        SELECT COUNT(*) as cnt FROM maintenance_schedule
-        WHERE user_id = ? AND next_due < date('now')
-    ''', [user_id])
+    if USE_POSTGRES:
+        overdue = db_fetchone(conn, '''
+            SELECT COUNT(*) as cnt FROM maintenance_schedule
+            WHERE user_id = ? AND next_due < CURRENT_DATE
+        ''', [user_id])
+    else:
+        overdue = db_fetchone(conn, '''
+            SELECT COUNT(*) as cnt FROM maintenance_schedule
+            WHERE user_id = ? AND next_due < date('now')
+        ''', [user_id])
     has_tasks = db_fetchone(conn, '''
         SELECT COUNT(*) as cnt FROM maintenance_schedule WHERE user_id = ?
     ''', [user_id])
@@ -1035,12 +1049,20 @@ def dashboard():
                     })
 
         # Monthly cost summary
-        cost_summary = db_fetchall(conn, '''
-            SELECT category, SUM(amount) as total FROM cost_entries
-            WHERE user_id = ?
-            AND purchase_date >= date('now', 'start of month')
-            GROUP BY category
-        ''', [uid])
+        if USE_POSTGRES:
+            cost_summary = db_fetchall(conn, '''
+                SELECT category, SUM(amount) as total FROM cost_entries
+                WHERE user_id = ?
+                AND purchase_date >= date_trunc('month', CURRENT_DATE)
+                GROUP BY category
+            ''', [uid])
+        else:
+            cost_summary = db_fetchall(conn, '''
+                SELECT category, SUM(amount) as total FROM cost_entries
+                WHERE user_id = ?
+                AND purchase_date >= date('now', 'start of month')
+                GROUP BY category
+            ''', [uid])
         monthly_total = sum(c['total'] for c in cost_summary) if cost_summary else 0
 
         tank_photo = (user or {}).get('tank_photo')
@@ -1099,11 +1121,20 @@ def get_costs():
     conn = get_db()
     try:
         if month:
-            rows = db_fetchall(conn, '''
-                SELECT * FROM cost_entries
-                WHERE user_id = ? AND purchase_date >= ? AND purchase_date < date(?, '+1 month')
-                ORDER BY purchase_date DESC
-            ''', [uid, month + '-01', month + '-01'])
+            start = month + '-01'
+            if USE_POSTGRES:
+                rows = db_fetchall(conn, '''
+                    SELECT * FROM cost_entries
+                    WHERE user_id = ? AND purchase_date >= ?::date
+                      AND purchase_date < (?::date + interval '1 month')
+                    ORDER BY purchase_date DESC
+                ''', [uid, start, start])
+            else:
+                rows = db_fetchall(conn, '''
+                    SELECT * FROM cost_entries
+                    WHERE user_id = ? AND purchase_date >= ? AND purchase_date < date(?, '+1 month')
+                    ORDER BY purchase_date DESC
+                ''', [uid, start, start])
         else:
             rows = db_fetchall(conn, '''
                 SELECT * FROM cost_entries WHERE user_id = ?
@@ -1120,16 +1151,28 @@ def cost_summary():
     uid = session['reef_user_id']
     conn = get_db()
     try:
-        rows = db_fetchall(conn, '''
-            SELECT
-                strftime('%%Y-%%m', purchase_date) as month,
-                category,
-                SUM(amount) as total
-            FROM cost_entries
-            WHERE user_id = ?
-            GROUP BY month, category
-            ORDER BY month DESC
-        ''', [uid])
+        if USE_POSTGRES:
+            rows = db_fetchall(conn, '''
+                SELECT
+                    to_char(purchase_date, 'YYYY-MM') as month,
+                    category,
+                    SUM(amount) as total
+                FROM cost_entries
+                WHERE user_id = ?
+                GROUP BY month, category
+                ORDER BY month DESC
+            ''', [uid])
+        else:
+            rows = db_fetchall(conn, '''
+                SELECT
+                    strftime('%%Y-%%m', purchase_date) as month,
+                    category,
+                    SUM(amount) as total
+                FROM cost_entries
+                WHERE user_id = ?
+                GROUP BY month, category
+                ORDER BY month DESC
+            ''', [uid])
         return jsonify({'summary': rows})
     finally:
         conn.close()
@@ -1264,12 +1307,20 @@ def get_recurring_costs():
         ''', [uid])
 
         # Also get manual one-off costs for current month
-        manual = db_fetchall(conn, '''
-            SELECT id, category, description, amount, purchase_date
-            FROM cost_entries WHERE user_id = ?
-            AND purchase_date >= date('now', 'start of month')
-            ORDER BY purchase_date DESC
-        ''', [uid])
+        if USE_POSTGRES:
+            manual = db_fetchall(conn, '''
+                SELECT id, category, description, amount, purchase_date
+                FROM cost_entries WHERE user_id = ?
+                AND purchase_date >= date_trunc('month', CURRENT_DATE)
+                ORDER BY purchase_date DESC
+            ''', [uid])
+        else:
+            manual = db_fetchall(conn, '''
+                SELECT id, category, description, amount, purchase_date
+                FROM cost_entries WHERE user_id = ?
+                AND purchase_date >= date('now', 'start of month')
+                ORDER BY purchase_date DESC
+            ''', [uid])
 
         recurring_total = sum(r['monthly_amount'] for r in recurring) if recurring else 0
         manual_total = sum(m['amount'] for m in manual) if manual else 0
@@ -2058,12 +2109,20 @@ def params_chart():
 
     conn = get_db()
     try:
-        rows = db_fetchall(conn, '''
-            SELECT value, unit, logged_at, source FROM parameter_logs
-            WHERE user_id = ? AND parameter_type = ?
-            AND logged_at >= datetime('now', ?)
-            ORDER BY logged_at ASC
-        ''', [uid, ptype, f'-{days} days'])
+        if USE_POSTGRES:
+            rows = db_fetchall(conn, '''
+                SELECT value, unit, logged_at, source FROM parameter_logs
+                WHERE user_id = ? AND parameter_type = ?
+                AND logged_at >= CURRENT_TIMESTAMP - (? || ' days')::interval
+                ORDER BY logged_at ASC
+            ''', [uid, ptype, str(days)])
+        else:
+            rows = db_fetchall(conn, '''
+                SELECT value, unit, logged_at, source FROM parameter_logs
+                WHERE user_id = ? AND parameter_type = ?
+                AND logged_at >= datetime('now', ?)
+                ORDER BY logged_at ASC
+            ''', [uid, ptype, f'-{days} days'])
 
         user = db_fetchone(conn, 'SELECT tank_type FROM reef_users WHERE id = ?', [uid])
         tank_type = (user or {}).get('tank_type') or 'mixed_reef'
