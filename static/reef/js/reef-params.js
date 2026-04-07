@@ -145,67 +145,151 @@ function renderChart(points, range, info) {
     });
 }
 
-// ── Manual Entry ─────────────────────────────────────────────────────────
+// ── Parameter Config (ranges, defaults, steps) ─────────────────────────
+
+const PARAM_CONFIG = {
+    alkalinity:  { min: 4.0,   max: 14.0,  step: 0.1,   default: 8.0,   unit: 'dKH', label: 'Alk',       decimals: 1 },
+    calcium:     { min: 300,   max: 520,   step: 1,     default: 420,   unit: 'ppm', label: 'Calcium',   decimals: 0 },
+    magnesium:   { min: 1100,  max: 1500,  step: 1,     default: 1350,  unit: 'ppm', label: 'Mag',       decimals: 0 },
+    salinity:    { min: 1.018, max: 1.032, step: 0.001, default: 1.026, unit: 'SG',  label: 'Salinity',  decimals: 3 },
+    ph:          { min: 7.4,   max: 8.8,   step: 0.1,   default: 8.2,   unit: '',    label: 'pH',        decimals: 1 },
+    temperature: { min: 74,    max: 84,    step: 0.1,   default: 78.0,  unit: '°F',  label: 'Temp',      decimals: 1 },
+    nitrate:     { min: 0,     max: 50,    step: 1,     default: 5,     unit: 'ppm', label: 'Nitrate',   decimals: 0 },
+    nitrite:     { min: 0.00,  max: 2.00,  step: 0.05,  default: 0,     unit: 'ppm', label: 'Nitrite',   decimals: 2 },
+    ammonia:     { min: 0.00,  max: 2.00,  step: 0.05,  default: 0,     unit: 'ppm', label: 'Ammonia',   decimals: 2 },
+    phosphate:   { min: 0.00,  max: 1.00,  step: 0.01,  default: 0.03,  unit: 'ppm', label: 'Phosphate', decimals: 2 },
+};
+
+const PICKER_ITEM_H = 44;
+const PICKER_VISIBLE = 5;
+
+let entryValues = {};
+let activePickerType = null;
+
+// ── Manual Entry (card grid) ────────────────────────────────────────────
 
 function showManualEntry() {
-    const fieldsEl = document.getElementById('manual-entry-fields');
-    fieldsEl.innerHTML = '';
+    entryValues = {};
+    const grid = document.getElementById('entry-param-grid');
+    grid.innerHTML = '';
 
-    const paramTypes = [
-        { type: 'salinity', label: 'Salinity (SG)', placeholder: '1.026' },
-        { type: 'ph', label: 'pH', placeholder: '8.2' },
-        { type: 'alkalinity', label: 'Alkalinity (dKH)', placeholder: '8.0' },
-        { type: 'calcium', label: 'Calcium (ppm)', placeholder: '430' },
-        { type: 'magnesium', label: 'Magnesium (ppm)', placeholder: '1320' },
-        { type: 'nitrate', label: 'Nitrate (ppm)', placeholder: '5' },
-        { type: 'nitrite', label: 'Nitrite (ppm)', placeholder: '0' },
-        { type: 'ammonia', label: 'Ammonia (ppm)', placeholder: '0' },
-        { type: 'phosphate', label: 'Phosphate (ppm)', placeholder: '0.03' },
-        { type: 'temperature', label: 'Temperature (F)', placeholder: '78' },
-    ];
-
-    paramTypes.forEach(p => {
-        const div = document.createElement('div');
-        div.className = 'form-group';
-        div.innerHTML = `
-            <label>${p.label}</label>
-            <input type="number" step="any" data-type="${p.type}" placeholder="${p.placeholder}">
+    Object.entries(PARAM_CONFIG).forEach(([type, cfg]) => {
+        const card = document.createElement('div');
+        card.className = 'entry-card';
+        card.id = `entry-card-${type}`;
+        card.onclick = () => openPicker(type);
+        card.innerHTML = `
+            <div class="entry-card-label">${cfg.label}</div>
+            <div class="entry-card-value" id="entry-val-${type}">&mdash;</div>
         `;
-        fieldsEl.appendChild(div);
+        grid.appendChild(card);
     });
 
     document.getElementById('manual-entry-modal').classList.remove('hidden');
 }
 
-async function handleManualEntry(e) {
-    e.preventDefault();
-    const inputs = document.querySelectorAll('#manual-entry-fields input[data-type]');
-    const params = [];
-
-    inputs.forEach(input => {
-        if (input.value) {
-            params.push({
-                type: input.dataset.type,
-                value: parseFloat(input.value),
-            });
-        }
-    });
+async function saveManualEntry() {
+    const params = Object.entries(entryValues).map(([type, value]) => ({ type, value }));
 
     if (params.length === 0) {
-        showToast('Enter at least one parameter', 'error');
-        return false;
+        showToast('Tap a parameter to set a value', 'error');
+        return;
     }
 
     try {
-        await api('/params', {
-            method: 'POST',
-            body: { params },
-        });
+        await api('/params', { method: 'POST', body: { params } });
         closeModal('manual-entry-modal');
         showToast(`Logged ${params.length} parameter(s)`, 'success');
         loadParamStatus();
     } catch (err) {
         showToast(err.message, 'error');
     }
-    return false;
+}
+
+// ── Scroll Wheel Picker ─────────────────────────────────────────────────
+
+function openPicker(type) {
+    activePickerType = type;
+    const cfg = PARAM_CONFIG[type];
+
+    document.getElementById('picker-label').textContent = cfg.label;
+    document.getElementById('picker-unit').textContent = cfg.unit;
+
+    // Build wheel items
+    const wheel = document.getElementById('picker-wheel');
+    wheel.innerHTML = '';
+
+    // Top spacers so first value can center
+    for (let i = 0; i < Math.floor(PICKER_VISIBLE / 2); i++) {
+        const sp = document.createElement('div');
+        sp.className = 'picker-item picker-spacer';
+        wheel.appendChild(sp);
+    }
+
+    const values = [];
+    for (let v = cfg.min; v <= cfg.max + cfg.step / 2; v += cfg.step) {
+        values.push(parseFloat(v.toFixed(cfg.decimals)));
+    }
+
+    values.forEach(v => {
+        const el = document.createElement('div');
+        el.className = 'picker-item';
+        el.textContent = v.toFixed(cfg.decimals);
+        el.dataset.value = v;
+        wheel.appendChild(el);
+    });
+
+    // Bottom spacers
+    for (let i = 0; i < Math.floor(PICKER_VISIBLE / 2); i++) {
+        const sp = document.createElement('div');
+        sp.className = 'picker-item picker-spacer';
+        wheel.appendChild(sp);
+    }
+
+    // Show sheet
+    const sheet = document.getElementById('picker-sheet');
+    sheet.classList.remove('hidden');
+
+    // Pre-scroll to default or previously entered value
+    const target = entryValues[type] !== undefined ? entryValues[type] : cfg.default;
+    const idx = values.findIndex(v => Math.abs(v - target) < cfg.step / 2);
+    requestAnimationFrame(() => {
+        wheel.scrollTop = (idx >= 0 ? idx : 0) * PICKER_ITEM_H;
+    });
+
+}
+
+function confirmPickerValue() {
+    const wheel = document.getElementById('picker-wheel');
+    const idx = Math.round(wheel.scrollTop / PICKER_ITEM_H);
+    const items = wheel.querySelectorAll('.picker-item:not(.picker-spacer)');
+    const cfg = PARAM_CONFIG[activePickerType];
+
+    if (items[idx]) {
+        const value = parseFloat(items[idx].dataset.value);
+        entryValues[activePickerType] = value;
+
+        const valEl = document.getElementById(`entry-val-${activePickerType}`);
+        valEl.textContent = value.toFixed(cfg.decimals);
+        valEl.classList.add('has-value');
+        document.getElementById(`entry-card-${activePickerType}`).classList.add('entry-card-set');
+    }
+
+    closePicker();
+}
+
+function clearPickerValue() {
+    if (activePickerType) {
+        delete entryValues[activePickerType];
+        const valEl = document.getElementById(`entry-val-${activePickerType}`);
+        valEl.textContent = '\u2014';
+        valEl.classList.remove('has-value');
+        document.getElementById(`entry-card-${activePickerType}`).classList.remove('entry-card-set');
+    }
+    closePicker();
+}
+
+function closePicker() {
+    document.getElementById('picker-sheet').classList.add('hidden');
+    activePickerType = null;
 }

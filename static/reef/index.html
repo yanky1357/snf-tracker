@@ -1098,15 +1098,34 @@
             <div id="manual-entry-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Manual Parameter Entry">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h3>Log Test Results</h3>
-                        <button class="modal-close" aria-label="Close" onclick="closeModal('manual-entry-modal')">&times;</button>
+                        <button class="picker-nav-btn" onclick="closeModal('manual-entry-modal')">Cancel</button>
+                        <h3>Log Test</h3>
+                        <button class="picker-nav-btn picker-nav-primary" onclick="saveManualEntry()">Save</button>
                     </div>
-                    <form id="manual-entry-form" onsubmit="return handleManualEntry(event)">
-                        <div id="manual-entry-fields">
-                            <!-- Filled by JS -->
+                    <div class="entry-param-grid" id="entry-param-grid">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scroll Wheel Picker -->
+            <div id="picker-sheet" class="picker-sheet hidden">
+                <div class="picker-backdrop" onclick="closePicker()"></div>
+                <div class="picker-sheet-content">
+                    <div class="picker-header">
+                        <button class="picker-nav-btn" onclick="clearPickerValue()">Clear</button>
+                        <div class="picker-title-wrap">
+                            <span id="picker-label"></span>
+                            <span id="picker-unit"></span>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-full">Log Parameters</button>
-                    </form>
+                        <button class="picker-nav-btn picker-nav-primary" onclick="confirmPickerValue()">Done</button>
+                    </div>
+                    <div class="picker-wheel-wrapper">
+                        <div class="picker-highlight"></div>
+                        <div class="picker-mask-top"></div>
+                        <div class="picker-mask-bottom"></div>
+                        <div class="picker-wheel" id="picker-wheel"></div>
+                    </div>
                 </div>
             </div>
 

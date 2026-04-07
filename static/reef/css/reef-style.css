@@ -1197,6 +1197,192 @@ input::placeholder {
     margin-bottom: 14px;
 }
 
+/* ── Parameter Entry Grid ────────────────────────────────────────────── */
+
+.entry-param-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.entry-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 16px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.2s ease;
+    border: 1.5px solid transparent;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.entry-card:active {
+    transform: scale(0.95);
+}
+
+.entry-card-set {
+    border-color: var(--accent);
+    background: rgba(0, 180, 216, 0.08);
+}
+
+.entry-card-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.entry-card-value {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.entry-card-value.has-value {
+    color: var(--text-primary);
+}
+
+/* ── Nav Buttons (Cancel/Save/Done/Clear) ────────────────────────────── */
+
+.picker-nav-btn {
+    background: none;
+    border: none;
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px 0;
+    min-width: 56px;
+}
+
+.picker-nav-primary {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+/* ── Scroll Wheel Picker Sheet ───────────────────────────────────────── */
+
+.picker-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.picker-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+}
+
+.picker-sheet-content {
+    position: relative;
+    background: #1c1c1e;
+    border-radius: 14px 14px 0 0;
+    width: 100%;
+    max-width: 480px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+}
+
+.picker-title-wrap {
+    text-align: center;
+}
+
+.picker-title-wrap #picker-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.picker-title-wrap #picker-unit {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-left: 4px;
+    font-weight: 400;
+}
+
+/* ── Picker Wheel ────────────────────────────────────────────────────── */
+
+.picker-wheel-wrapper {
+    position: relative;
+    height: 220px;
+    overflow: hidden;
+}
+
+.picker-wheel {
+    height: 100%;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.picker-wheel::-webkit-scrollbar {
+    display: none;
+}
+
+.picker-item {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.35);
+    scroll-snap-align: center;
+    user-select: none;
+    -webkit-user-select: none;
+    font-variant-numeric: tabular-nums;
+}
+
+.picker-spacer {
+    scroll-snap-align: none;
+}
+
+.picker-highlight {
+    position: absolute;
+    top: 50%;
+    left: 16px;
+    right: 16px;
+    height: 44px;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.picker-mask-top,
+.picker-mask-bottom {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 88px;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.picker-mask-top {
+    top: 0;
+    background: linear-gradient(to bottom, #1c1c1e 20%, transparent 100%);
+}
+
+.picker-mask-bottom {
+    bottom: 0;
+    background: linear-gradient(to top, #1c1c1e 20%, transparent 100%);
+}
+
 /* ── Chart ────────────────────────────────────────────────────────────── */
 
 .chart-range-btns {
