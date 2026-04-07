@@ -93,8 +93,13 @@ def send_email(to, subject, html_body):
         return True
     try:
         import urllib.request
+        from_email = os.environ.get('FROM_EMAIL', 'ReefPilot <onboarding@resend.dev>')
+        api_key = os.environ.get('RESEND_API_KEY', '')
+        print(f"[EMAIL DEBUG] Key starts with: {api_key[:15]}... (len={len(api_key)})")
+        print(f"[EMAIL DEBUG] FROM: {from_email}")
+        print(f"[EMAIL DEBUG] TO: {to}")
         data = json.dumps({
-            'from': os.environ.get('FROM_EMAIL', 'ReefPilot <onboarding@resend.dev>'),
+            'from': from_email,
             'to': [to],
             'subject': subject,
             'html': html_body,
@@ -103,7 +108,7 @@ def send_email(to, subject, html_body):
             'https://api.resend.com/emails',
             data=data,
             headers={
-                'Authorization': f'Bearer {RESEND_API_KEY}',
+                'Authorization': f'Bearer {api_key}',
                 'Content-Type': 'application/json',
             },
             method='POST'
