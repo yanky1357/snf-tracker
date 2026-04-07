@@ -2200,8 +2200,8 @@ input::placeholder {
 .wizard-container {
     max-width: 480px;
     margin: 0 auto;
-    padding: 20px 16px 30px;
-    min-height: 100vh;
+    padding: 20px 16px calc(30px + var(--safe-bottom));
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
 }
