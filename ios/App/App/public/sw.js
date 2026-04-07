@@ -1,4 +1,4 @@
-const CACHE_NAME = 'reefpilot-v8';
+const CACHE_NAME = 'reefpilot-v9';
 const STATIC_ASSETS = [
     '/',
     '/static/reef/index.html',
