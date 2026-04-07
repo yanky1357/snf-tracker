@@ -16,11 +16,12 @@ async function api(path, opts = {}) {
         config.body = JSON.stringify(opts.body);
     }
     const res = await fetch(url, config);
-    const contentType = res.headers.get('content-type') || '';
-    if (!contentType.includes('application/json')) {
-        throw new Error('Request failed');
+    let data;
+    try {
+        data = await res.json();
+    } catch {
+        throw new Error('Connection error — please try again');
     }
-    const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Request failed');
     return data;
 }

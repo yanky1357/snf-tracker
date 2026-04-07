@@ -235,7 +235,9 @@ def manifest():
 
 @app.route('/sw.js')
 def service_worker():
-    return send_from_directory(REEF_STATIC, 'sw.js', mimetype='application/javascript')
+    resp = send_from_directory(REEF_STATIC, 'sw.js', mimetype='application/javascript')
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
 
 
 @app.route('/privacy')
