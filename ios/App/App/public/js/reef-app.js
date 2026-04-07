@@ -704,9 +704,11 @@ async function init() {
         document.getElementById('auth-screen').classList.remove('hidden');
     }
 
-    // Register service worker
+    // Register service worker and force update check
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').catch(() => {});
+        navigator.serviceWorker.register('/sw.js').then(reg => {
+            reg.update();
+        }).catch(() => {});
     }
 
     // Check initial online status

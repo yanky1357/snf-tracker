@@ -15,6 +15,19 @@
     <script src="/static/reef/js/chart.umd.min.js"></script>
 </head>
 <body>
+<script>
+// One-time stale SW cleanup — forces fresh service worker
+if (!localStorage.getItem('sw-clean-v11') && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(regs) {
+        regs.forEach(function(r) { r.unregister(); });
+    });
+    caches.keys().then(function(keys) {
+        keys.forEach(function(k) { caches.delete(k); });
+    });
+    localStorage.setItem('sw-clean-v11', '1');
+    setTimeout(function() { location.reload(); }, 500);
+}
+</script>
 
 <!-- ── Loading Splash (shown during init) ──────────────────────────── -->
 <div id="loading-splash" class="screen" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
@@ -1533,7 +1546,7 @@
 <!-- Toast Container -->
 <div id="toast-container"></div>
 
-<script src="/static/reef/js/reef-app.js?v=11"></script>
+<script src="/static/reef/js/reef-app.js?v=12"></script>
 <script src="/static/reef/js/reef-chat.js?v=8"></script>
 <script src="/static/reef/js/reef-params.js?v=8"></script>
 <script src="/static/reef/js/reef-calc.js?v=8"></script>
