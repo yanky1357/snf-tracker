@@ -1302,12 +1302,16 @@ def cost_wizard_submit():
         # Calculate costs
         costs = calculate_all_costs(user, answers_dict)
 
-        # Clear existing calculated costs and insert new ones
+        # Clear existing calculated costs and upsert new ones
         db_execute(conn, "DELETE FROM recurring_costs WHERE user_id = ? AND source = 'calculated'", [uid])
         for c in costs:
             db_execute(conn, '''
                 INSERT INTO recurring_costs (user_id, category, description, monthly_amount, source)
                 VALUES (?, ?, ?, ?, 'calculated')
+                ON CONFLICT (user_id, category, description)
+                DO UPDATE SET monthly_amount = EXCLUDED.monthly_amount,
+                             source = 'calculated',
+                             last_updated = CURRENT_TIMESTAMP
             ''', [uid, c['category'], c['description'], c['monthly_amount']])
 
         # Mark wizard as completed
