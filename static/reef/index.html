@@ -929,14 +929,14 @@
                         <label>How much do you pay for a bucket of salt? (optional)</label>
                         <div class="input-row">
                             <span class="input-suffix">$</span>
-                            <input type="number" id="cw-salt-price" placeholder="Use average" inputmode="decimal" step="0.01" style="flex:1" oninput="cwInput('salt_bucket_price',this.value)">
+                            <input type="text" id="cw-salt-price" placeholder="Use average" inputmode="decimal" pattern="[0-9]*\.?[0-9]*" style="flex:1" oninput="cwInput('salt_bucket_price',this.value)">
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Electricity rate ($/kWh)</label>
                         <div class="input-row">
                             <span class="input-suffix">$</span>
-                            <input type="number" id="cw-elec-rate" placeholder="0.15" inputmode="decimal" step="0.01" value="0.15" style="flex:1" oninput="cwInput('electricity_rate',this.value)">
+                            <input type="text" id="cw-elec-rate" placeholder="0.15" inputmode="decimal" pattern="[0-9]*\.?[0-9]*" value="0.15" style="flex:1" oninput="cwInput('electricity_rate',this.value)">
                             <span class="input-suffix">/kWh</span>
                         </div>
                         <div style="font-size:12px;color:var(--text-muted);margin-top:4px">US average is ~$0.15/kWh</div>
