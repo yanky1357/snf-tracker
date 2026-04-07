@@ -85,21 +85,31 @@ def generate_code():
 
 
 def send_email(to, subject, html_body):
-    """Send email via Resend. Returns True on success."""
+    """Send email via Resend HTTP API. Returns True on success."""
     if not RESEND_API_KEY:
         # Dev mode — log code to console instead of sending
         print(f"[DEV EMAIL] To: {to}, Subject: {subject}")
         print(f"[DEV EMAIL] Body: {html_body}")
         return True
     try:
-        import resend
-        resend.api_key = RESEND_API_KEY
-        resend.Emails.send({
-            'from': os.environ.get('FROM_EMAIL', 'ReefPilot <noreply@reefpilot.app>'),
+        import urllib.request
+        data = json.dumps({
+            'from': os.environ.get('FROM_EMAIL', 'ReefPilot <onboarding@resend.dev>'),
             'to': [to],
             'subject': subject,
             'html': html_body,
-        })
+        }).encode('utf-8')
+        req = urllib.request.Request(
+            'https://api.resend.com/emails',
+            data=data,
+            headers={
+                'Authorization': f'Bearer {RESEND_API_KEY}',
+                'Content-Type': 'application/json',
+            },
+            method='POST'
+        )
+        resp = urllib.request.urlopen(req, timeout=10)
+        print(f"Email sent to {to}: {resp.read().decode()}")
         return True
     except Exception as e:
         print(f"Email send error: {e}")
