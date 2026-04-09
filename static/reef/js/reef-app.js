@@ -1,5 +1,15 @@
 /* ReefPilot — Main app: auth, routing, API helpers, navigation */
 
+// ── Dismiss keyboard on tap outside input fields ──────────────────────
+document.addEventListener('touchstart', function(e) {
+    const active = document.activeElement;
+    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) {
+        if (!e.target.closest('input, textarea, select, button, a, .wizard-preset-btn, .wizard-card, .wizard-pill, .wizard-day-btn, .cw-preset, .cw-card, .nav-tab')) {
+            active.blur();
+        }
+    }
+});
+
 let currentUser = null;
 window.currentUserProfile = null;
 let saltBrands = {};
@@ -206,6 +216,18 @@ const WIZARD_QUESTIONS = {
 };
 
 function showOnboarding() {
+    // Show welcome screen first instead of jumping to wizard
+    const welcome = document.getElementById('welcome-screen');
+    if (welcome) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        welcome.classList.remove('hidden');
+    } else {
+        startOnboarding();
+    }
+}
+
+function startOnboarding() {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById('onboarding-screen').classList.remove('hidden');
     document.getElementById('app-screen').classList.add('hidden');
     wizardStep = 1;
