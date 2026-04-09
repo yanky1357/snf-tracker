@@ -1011,7 +1011,8 @@ def dashboard():
             })
 
         # Unified tasks: due today or overdue (both sources)
-        today_str = date.today().isoformat()
+        today = date.today()
+        today_str = today.isoformat()
         maint_due = db_fetchall(conn, '''
             SELECT id, task_name, frequency, next_due, notes
             FROM maintenance_schedule WHERE user_id = ?
