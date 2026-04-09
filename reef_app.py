@@ -966,6 +966,7 @@ def dashboard():
     uid = session['reef_user_id']
     conn = get_db()
     try:
+        import traceback as _tb
         # Health score
         health_score = calculate_health_score(conn, uid)
 
@@ -1124,6 +1125,9 @@ def dashboard():
             },
             'tank_photo_url': tank_photo_url,
         })
+    except Exception as e:
+        _tb.print_exc()
+        return jsonify({'error': f'Dashboard error: {str(e)}'}), 500
     finally:
         conn.close()
 
