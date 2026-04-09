@@ -1107,7 +1107,13 @@ def dashboard():
                 AND purchase_date >= date('now', 'start of month')
                 GROUP BY category
             ''', [uid])
-        monthly_total = sum(c['total'] for c in cost_summary) if cost_summary else 0
+        purchases_total = sum(c['total'] for c in cost_summary) if cost_summary else 0
+
+        # Also include recurring costs in the dashboard total
+        recurring = db_fetchall(conn, '''
+            SELECT category, monthly_amount FROM recurring_costs WHERE user_id = ?
+        ''', [uid])
+        recurring_total = sum(r['monthly_amount'] for r in recurring) if recurring else 0
 
         tank_photo = (user or {}).get('tank_photo')
         tank_photo_url = f'/reef/api/tank-photo/{tank_photo}' if tank_photo else None
@@ -1121,7 +1127,9 @@ def dashboard():
             'active_milestones': active_milestones,
             'insights': insights,
             'cost_summary': {
-                'month_total': monthly_total,
+                'month_total': recurring_total + purchases_total,
+                'recurring_total': recurring_total,
+                'purchases_total': purchases_total,
                 'by_category': cost_summary,
             },
             'tank_photo_url': tank_photo_url,
