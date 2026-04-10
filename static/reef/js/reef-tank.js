@@ -100,10 +100,15 @@ function uploadLivestockPhoto(id) {
             const resp = await fetch('/reef/api/livestock/' + id + '/photo', {
                 method: 'POST',
                 body: formData,
+                credentials: 'same-origin',
             });
-            if (!resp.ok) throw new Error('Upload failed');
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                throw new Error(err.error || 'Upload failed');
+            }
             showToast('Photo uploaded!', 'success');
             loadTankData();
+            loadHomeLivestock();
         } catch (err) {
             showToast('Failed to upload photo', 'error');
         }

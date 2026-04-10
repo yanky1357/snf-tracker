@@ -2796,30 +2796,35 @@ def add_livestock():
 @require_auth
 def upload_livestock_photo(lid):
     uid = session['reef_user_id']
-    if 'photo' not in request.files:
-        return jsonify({'error': 'No photo'}), 400
-    f = request.files['photo']
-    if not f.filename:
-        return jsonify({'error': 'Empty file'}), 400
-    ext = f.filename.rsplit('.', 1)[-1].lower() if '.' in f.filename else 'jpg'
-    if ext not in ('jpg', 'jpeg', 'png', 'webp'):
-        return jsonify({'error': 'Invalid file type'}), 400
-    filename = f'livestock_{uid}_{lid}_{uuid.uuid4().hex[:8]}.{ext}'
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    f.save(os.path.join(UPLOAD_DIR, filename))
-    conn = get_db()
     try:
-        # Remove old photo file
-        old = db_fetchval(conn, 'SELECT photo FROM livestock WHERE id = ? AND user_id = ?', [lid, uid])
-        if old:
-            old_path = os.path.join(UPLOAD_DIR, old)
-            if os.path.exists(old_path):
-                os.remove(old_path)
-        db_execute(conn, 'UPDATE livestock SET photo = ? WHERE id = ? AND user_id = ?', [filename, lid, uid])
-        conn.commit()
-        return jsonify({'ok': True, 'photo_url': f'/reef/api/livestock/{lid}/photo'})
-    finally:
-        conn.close()
+        if 'photo' not in request.files:
+            return jsonify({'error': 'No photo file found'}), 400
+        f = request.files['photo']
+        if not f.filename:
+            return jsonify({'error': 'Empty file'}), 400
+        ext = f.filename.rsplit('.', 1)[-1].lower() if '.' in f.filename else 'jpg'
+        if ext not in ('jpg', 'jpeg', 'png', 'webp', 'heic'):
+            return jsonify({'error': 'Invalid file type. Use JPG, PNG, or WebP'}), 400
+        filename = f'livestock_{uid}_{lid}_{uuid.uuid4().hex[:8]}.{ext}'
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+        f.save(os.path.join(UPLOAD_DIR, filename))
+        conn = get_db()
+        try:
+            # Remove old photo file
+            old = db_fetchval(conn, 'SELECT photo FROM livestock WHERE id = ? AND user_id = ?', [lid, uid])
+            if old:
+                old_path = os.path.join(UPLOAD_DIR, old)
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+            db_execute(conn, 'UPDATE livestock SET photo = ? WHERE id = ? AND user_id = ?', [filename, lid, uid])
+            conn.commit()
+            return jsonify({'ok': True, 'photo_url': f'/reef/api/livestock/{lid}/photo'})
+        finally:
+            conn.close()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Upload failed: {str(e)}'}), 500
 
 
 @app.route('/reef/api/livestock/<int:lid>/photo', methods=['GET'])
