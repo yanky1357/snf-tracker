@@ -1204,17 +1204,38 @@ def upload_tank_photo():
         return jsonify({'error': 'No file selected'}), 400
 
     import base64
+    from io import BytesIO
     raw = file.read()
-    if len(raw) > 5 * 1024 * 1024:
-        return jsonify({'error': 'Photo too large (max 5MB)'}), 400
-    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
-    mime = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'webp': 'image/webp'}.get(ext, 'image/jpeg')
+    if len(raw) > 10 * 1024 * 1024:
+        return jsonify({'error': 'Photo too large (max 10MB)'}), 400
+
+    # Compress and fix orientation
+    try:
+        from PIL import Image, ImageOps
+        img = Image.open(BytesIO(raw))
+        img = ImageOps.exif_transpose(img)
+        img = img.convert('RGB')
+        max_dim = 1200
+        if img.width > max_dim or img.height > max_dim:
+            ratio = min(max_dim / img.width, max_dim / img.height)
+            img = img.resize((int(img.width * ratio), int(img.height * ratio)), Image.LANCZOS)
+        buf = BytesIO()
+        img.save(buf, format='JPEG', quality=75)
+        raw = buf.getvalue()
+        mime = 'image/jpeg'
+    except ImportError:
+        ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+        mime = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'webp': 'image/webp'}.get(ext, 'image/jpeg')
+
     b64 = f'data:{mime};base64,' + base64.b64encode(raw).decode('utf-8')
 
     conn = get_db()
     try:
         db_execute(conn, 'UPDATE reef_users SET tank_photo = ? WHERE id = ?', [b64, uid])
         conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': f'Save failed: {str(e)}'}), 500
     finally:
         conn.close()
     return jsonify({'tank_photo_url': f'/reef/api/tank-photo/current'})

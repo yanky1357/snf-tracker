@@ -94,9 +94,11 @@ function uploadLivestockPhoto(id) {
     input.onchange = async () => {
         const file = input.files[0];
         if (!file) return;
-        const formData = new FormData();
-        formData.append('photo', file);
         try {
+            showToast('Uploading...');
+            const compressed = await compressImage(file, 800, 0.75);
+            const formData = new FormData();
+            formData.append('photo', compressed, 'livestock.jpg');
             const resp = await fetch('/reef/api/livestock/' + id + '/photo', {
                 method: 'POST',
                 body: formData,
@@ -203,6 +205,7 @@ async function handleAddLivestock(e) {
 }
 
 async function deleteLivestock(id) {
+    if (!confirm('Are you sure you want to remove this livestock?')) return;
     try {
         await api('/livestock/' + id, { method: 'DELETE' });
         showToast('Removed', 'success');

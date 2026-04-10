@@ -64,18 +64,21 @@ function initTankPhotoUpload() {
         const file = input.files[0];
         if (!file) return;
 
-        const formData = new FormData();
-        formData.append('photo', file);
-
         try {
+            showToast('Uploading...');
+            const compressed = await compressImage(file, 1200, 0.75);
+            const formData = new FormData();
+            formData.append('photo', compressed, 'tank.jpg');
+
             const res = await fetch('/reef/api/tank-photo', {
                 method: 'POST',
                 body: formData,
+                credentials: 'same-origin',
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Upload failed');
             renderTankHero(data.tank_photo_url);
-            showToast('Tank photo updated!');
+            showToast('Tank photo updated!', 'success');
         } catch (err) {
             showToast(err.message, 'error');
         }

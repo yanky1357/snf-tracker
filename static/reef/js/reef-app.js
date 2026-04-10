@@ -36,6 +36,32 @@ async function api(path, opts = {}) {
     return data;
 }
 
+// ── Client-side image compression ───────────────────────────────────────
+
+function compressImage(file, maxDim = 1200, quality = 0.7) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let w = img.width, h = img.height;
+                if (w > maxDim || h > maxDim) {
+                    const ratio = Math.min(maxDim / w, maxDim / h);
+                    w = Math.round(w * ratio);
+                    h = Math.round(h * ratio);
+                }
+                canvas.width = w;
+                canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                canvas.toBlob((blob) => resolve(blob), 'image/jpeg', quality);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
 // ── Toast ────────────────────────────────────────────────────────────────
 
 function showToast(message, type = '') {
