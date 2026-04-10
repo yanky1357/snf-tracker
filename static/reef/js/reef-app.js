@@ -88,6 +88,8 @@ async function savePreferences() {
         // Refresh displays
         if (typeof loadDashboard === 'function') loadDashboard();
         if (typeof loadTankData === 'function') loadTankData();
+        if (typeof updateVolumeLabels === 'function') updateVolumeLabels();
+        if (typeof initCalcDefaults === 'function') initCalcDefaults();
     } catch (e) {}
 }
 
