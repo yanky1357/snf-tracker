@@ -376,6 +376,53 @@ def delete_account():
         conn.close()
 
 
+# ── Admin Stats ────────────────────────────────────────────────────────────
+
+@app.route('/reef/api/admin/stats')
+def admin_stats():
+    key = request.args.get('key', '')
+    if key != 'reef2026yanky':
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    conn = get_db()
+    try:
+        total_users = db_fetchval(conn, 'SELECT COUNT(*) FROM reef_users') or 0
+        onboarded = db_fetchval(conn, 'SELECT COUNT(*) FROM reef_users WHERE onboarded = 1') or 0
+
+        if USE_POSTGRES:
+            today_users = db_fetchval(conn, "SELECT COUNT(*) FROM reef_users WHERE created_at >= CURRENT_DATE") or 0
+            week_users = db_fetchval(conn, "SELECT COUNT(*) FROM reef_users WHERE created_at >= CURRENT_DATE - interval '7 days'") or 0
+            recent = db_fetchall(conn, '''
+                SELECT id, email, display_name, created_at, onboarded, tank_type, tank_size_gallons
+                FROM reef_users ORDER BY created_at DESC LIMIT 20
+            ''')
+        else:
+            today_users = db_fetchval(conn, "SELECT COUNT(*) FROM reef_users WHERE created_at >= date('now')") or 0
+            week_users = db_fetchval(conn, "SELECT COUNT(*) FROM reef_users WHERE created_at >= date('now', '-7 days')") or 0
+            recent = db_fetchall(conn, '''
+                SELECT id, email, display_name, created_at, onboarded, tank_type, tank_size_gallons
+                FROM reef_users ORDER BY created_at DESC LIMIT 20
+            ''')
+
+        return jsonify({
+            'total_users': total_users,
+            'onboarded_users': onboarded,
+            'signups_today': today_users,
+            'signups_this_week': week_users,
+            'recent_users': [{
+                'id': u['id'],
+                'email': u['email'],
+                'name': u.get('display_name', ''),
+                'joined': str(u.get('created_at', '')),
+                'onboarded': bool(u.get('onboarded')),
+                'tank_type': u.get('tank_type', ''),
+                'tank_size': u.get('tank_size_gallons', ''),
+            } for u in (recent or [])]
+        })
+    finally:
+        conn.close()
+
+
 @app.route('/reef/api/auth/me')
 @require_auth
 def get_me():
