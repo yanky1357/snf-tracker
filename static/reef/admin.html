@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ReefPilot Admin</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0B1622;color:#F0F4F8;min-height:100vh}
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-box{background:#162233;border-radius:16px;padding:32px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.3)}
+.login-box h1{color:#00B4D8;font-size:22px;margin-bottom:8px;text-align:center}
+.login-box p{color:#8899AA;font-size:13px;text-align:center;margin-bottom:24px}
+.login-box input{width:100%;padding:12px 14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#F0F4F8;font-size:15px;margin-bottom:16px;outline:none}
+.login-box input:focus{border-color:#00B4D8;background:rgba(0,180,216,0.06)}
+.login-box button{width:100%;padding:13px;background:linear-gradient(135deg,#00ccee,#00B4D8,#0096B7);color:white;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer}
+.login-box .err{color:#F87171;font-size:13px;text-align:center;margin-bottom:12px;display:none}
+.dashboard{display:none;padding:20px;max-width:900px;margin:0 auto}
+.dash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.dash-header h1{color:#00B4D8;font-size:24px;font-weight:700}
+.dash-header .refresh{color:#8899AA;font-size:13px;cursor:pointer;padding:6px 14px;border:1px solid rgba(255,255,255,0.1);border-radius:8px}
+.dash-header .refresh:hover{color:#00B4D8;border-color:#00B4D8}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:28px}
+.stat-card{background:#162233;border-radius:14px;padding:20px;text-align:center;border:1px solid rgba(255,255,255,0.04)}
+.stat-card .num{font-size:36px;font-weight:800;color:#00B4D8}
+.stat-card .label{font-size:12px;color:#8899AA;margin-top:6px;text-transform:uppercase;letter-spacing:0.5px}
+.stat-card.green .num{color:#34D399}
+.stat-card.amber .num{color:#FBBF24}
+.section-title{font-size:16px;font-weight:600;color:#F0F4F8;margin-bottom:12px}
+.user-card{background:#162233;border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background 0.15s}
+.user-card:hover{background:#1a2a3e}
+.user-card .avatar{width:36px;height:36px;border-radius:10px;background:rgba(0,180,216,0.12);display:flex;align-items:center;justify-content:center;color:#00B4D8;font-weight:700;font-size:14px;flex-shrink:0}
+.user-card .info{flex:1;min-width:0}
+.user-card .name{font-size:14px;font-weight:600;color:#F0F4F8}
+.user-card .email{font-size:11px;color:#8899AA;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-card .meta{text-align:right;flex-shrink:0}
+.user-card .tank{font-size:12px;color:#F0F4F8}
+.user-card .time{font-size:10px;color:#8899AA}
+.badge{display:inline-block;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:600}
+.badge.yes{background:rgba(52,211,153,0.15);color:#34D399}
+.badge.no{background:rgba(248,113,113,0.15);color:#F87171}
+.view-btn{padding:6px 14px;background:#00B4D8;color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0}
+.view-btn:hover{background:#00a0c0}
+.detail-panel{background:#162233;border-radius:14px;border:1px solid rgba(0,180,216,0.2);padding:20px;margin-top:16px;display:none}
+.detail-section{background:rgba(255,255,255,0.02);border-radius:10px;padding:14px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.04)}
+.detail-section h3{font-size:13px;font-weight:600;color:#00B4D8;margin-bottom:10px}
+.param-chip{display:inline-block;background:rgba(0,180,216,0.08);padding:5px 10px;border-radius:8px;font-size:12px;margin:3px}
+.chat-msg{padding:8px 12px;margin-bottom:6px;border-radius:10px;font-size:12px;border-left:3px solid}
+.auto-refresh{color:#8899AA;font-size:11px;text-align:center;margin-top:20px;padding:12px}
+</style></head><body>
+
+<div class="login-wrap" id="loginWrap">
+  <div class="login-box">
+    <h1>ReefPilot Admin</h1>
+    <p>Enter your admin password</p>
+    <div class="err" id="loginErr">Wrong password</div>
+    <input type="password" id="passInput" placeholder="Password" autofocus>
+    <button id="loginBtn">Sign In</button>
+  </div>
+</div>
+
+<div class="dashboard" id="dash">
+  <div class="dash-header">
+    <h1>ReefPilot Dashboard</h1>
+    <span class="refresh" id="refreshBtn">Refresh</span>
+  </div>
+  <div class="stats-grid" id="statsGrid"></div>
+  <div class="section-title">Recent Users</div>
+  <div id="usersList"></div>
+  <div class="detail-panel" id="detailPanel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="section-title" id="detailTitle" style="margin:0"></div>
+      <span style="color:#8899AA;cursor:pointer;font-size:13px" id="closeDetail">Close</span>
+    </div>
+    <div id="detailContent"></div>
+  </div>
+  <div class="auto-refresh" id="refreshNote">Auto-refreshes every 30 seconds</div>
+</div>
+
+<script>
+var adminKey = '';
+
+document.getElementById('passInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doLogin();
+});
+document.getElementById('loginBtn').addEventListener('click', doLogin);
+document.getElementById('refreshBtn').addEventListener('click', loadStats);
+document.getElementById('closeDetail').addEventListener('click', function() {
+  document.getElementById('detailPanel').style.display = 'none';
+});
+
+function doLogin() {
+  adminKey = document.getElementById('passInput').value;
+  fetch('/reef/api/admin/stats?key=' + encodeURIComponent(adminKey))
+    .then(function(r) { if (!r.ok) throw new Error(); return r.json(); })
+    .then(function(d) {
+      document.getElementById('loginWrap').style.display = 'none';
+      document.getElementById('dash').style.display = 'block';
+      renderDashboard(d);
+      setInterval(loadStats, 30000);
+    })
+    .catch(function() {
+      document.getElementById('loginErr').style.display = 'block';
+    });
+}
+
+function loadStats() {
+  fetch('/reef/api/admin/stats?key=' + encodeURIComponent(adminKey))
+    .then(function(r) { return r.json(); })
+    .then(renderDashboard)
+    .catch(function() {});
+}
+
+function renderDashboard(d) {
+  document.getElementById('statsGrid').innerHTML =
+    '<div class="stat-card"><div class="num">' + d.total_users + '</div><div class="label">Total Users</div></div>' +
+    '<div class="stat-card green"><div class="num">' + d.onboarded_users + '</div><div class="label">Onboarded</div></div>' +
+    '<div class="stat-card amber"><div class="num">' + d.signups_today + '</div><div class="label">Today</div></div>' +
+    '<div class="stat-card"><div class="num">' + d.signups_this_week + '</div><div class="label">This Week</div></div>';
+
+  var list = document.getElementById('usersList');
+  var html = '';
+  for (var i = 0; i < d.recent_users.length; i++) {
+    var u = d.recent_users[i];
+    var dt = new Date(u.joined);
+    var time = isNaN(dt.getTime()) ? u.joined : dt.toLocaleDateString() + ' ' + dt.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    var tank = u.tank_size ? (u.tank_size + 'g ' + (u.tank_type || '').replace(/_/g, ' ')) : '—';
+    var initials = (u.name || u.email || '?').substring(0, 2).toUpperCase();
+    var badge = u.onboarded ? '<span class="badge yes">Done</span>' : '<span class="badge no">Pending</span>';
+
+    html += '<div class="user-card" data-id="' + u.id + '">' +
+      '<div class="avatar">' + initials + '</div>' +
+      '<div class="info"><div class="name">' + (u.name || '—') + '</div><div class="email">' + u.email + '</div></div>' +
+      '<div class="meta"><div class="tank">' + tank + '</div><div class="time">' + time + '</div></div>' +
+      badge +
+      '<button class="view-btn" data-id="' + u.id + '">View</button>' +
+      '</div>';
+  }
+  list.innerHTML = html;
+
+  // Attach click handlers
+  var buttons = list.querySelectorAll('.view-btn');
+  for (var j = 0; j < buttons.length; j++) {
+    buttons[j].addEventListener('click', function(e) {
+      e.stopPropagation();
+      var uid = parseInt(this.getAttribute('data-id'));
+      loadUserDetail(uid);
+    });
+  }
+
+  document.getElementById('refreshNote').textContent = 'Last updated: ' + new Date().toLocaleTimeString() + ' · Auto-refreshes every 30s';
+}
+
+function loadUserDetail(uid) {
+  var panel = document.getElementById('detailPanel');
+  var content = document.getElementById('detailContent');
+  content.innerHTML = '<div style="text-align:center;padding:20px;color:#8899AA">Loading...</div>';
+  panel.style.display = 'block';
+  panel.scrollIntoView({behavior: 'smooth'});
+
+  fetch('/reef/api/admin/user/' + uid + '?key=' + encodeURIComponent(adminKey))
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var u = d.user;
+      document.getElementById('detailTitle').textContent = u.name || u.email;
+
+      var html = '';
+
+      // Stats
+      html += '<div class="stats-grid" style="margin-bottom:16px">';
+      html += '<div class="stat-card"><div class="num">' + d.param_logs.length + '</div><div class="label">Param Logs</div></div>';
+      html += '<div class="stat-card"><div class="num">' + d.chat_history.length + '</div><div class="label">Chat Msgs</div></div>';
+      html += '<div class="stat-card"><div class="num">' + d.livestock.length + '</div><div class="label">Livestock</div></div>';
+      html += '<div class="stat-card"><div class="num">' + d.recurring_costs.length + '</div><div class="label">Costs</div></div>';
+      html += '</div>';
+
+      // Profile
+      html += '<div class="detail-section"><h3>Profile</h3>';
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px">';
+      html += '<div><span style="color:#8899AA">Tank:</span> ' + (u.tank_size || '—') + 'g ' + (u.tank_type || '').replace(/_/g, ' ') + '</div>';
+      html += '<div><span style="color:#8899AA">Salt:</span> ' + (u.salt_brand || '—') + '</div>';
+      html += '<div><span style="color:#8899AA">Experience:</span> ' + (u.experience || '—').replace(/_/g, ' ') + '</div>';
+      html += '<div><span style="color:#8899AA">Fish:</span> ' + (u.fish_count || '—') + '</div>';
+      html += '<div><span style="color:#8899AA">Dosing:</span> ' + (u.dosing || '—') + '</div>';
+      html += '<div><span style="color:#8899AA">Joined:</span> ' + new Date(u.joined).toLocaleDateString() + '</div>';
+      html += '</div></div>';
+
+      // Params
+      if (d.param_logs.length > 0) {
+        html += '<div class="detail-section"><h3>Recent Parameters</h3><div>';
+        for (var i = 0; i < Math.min(d.param_logs.length, 20); i++) {
+          var p = d.param_logs[i];
+          html += '<span class="param-chip"><b style="color:#00B4D8">' + p.parameter_type + '</b> ' + p.value + ' ' + (p.unit || '') + '</span>';
+        }
+        html += '</div></div>';
+      }
+
+      // Chat
+      if (d.chat_history.length > 0) {
+        html += '<div class="detail-section"><h3>Recent Chat</h3>';
+        for (var j = 0; j < Math.min(d.chat_history.length, 10); j++) {
+          var c = d.chat_history[j];
+          var isUser = c.role === 'user';
+          var msg = c.content.length > 150 ? c.content.substring(0, 150) + '...' : c.content;
+          msg = msg.replace(/</g, '&lt;');
+          html += '<div class="chat-msg" style="background:' + (isUser ? 'rgba(0,180,216,0.06)' : 'rgba(255,255,255,0.02)') +
+            ';border-left-color:' + (isUser ? '#00B4D8' : '#34D399') + '">' +
+            '<b style="color:' + (isUser ? '#00B4D8' : '#34D399') + '">' + (isUser ? 'User' : 'AI') + ':</b> ' + msg + '</div>';
+        }
+        html += '</div>';
+      }
+
+      // Livestock
+      if (d.livestock.length > 0) {
+        html += '<div class="detail-section"><h3>Livestock</h3>';
+        for (var k = 0; k < d.livestock.length; k++) {
+          var l = d.livestock[k];
+          html += '<div style="font-size:13px;padding:3px 0">' + (l.common_name || l.species || '—') +
+            ' <span style="color:#8899AA">x' + (l.quantity || 1) + ' · ' + (l.category || '') + '</span></div>';
+        }
+        html += '</div>';
+      }
+
+      // Tasks
+      var allTasks = [];
+      for (var m = 0; m < d.calendar_tasks.length; m++) allTasks.push(d.calendar_tasks[m].title + ' · ' + d.calendar_tasks[m].frequency);
+      for (var n = 0; n < d.maintenance_tasks.length; n++) allTasks.push(d.maintenance_tasks[n].task_name + ' · ' + d.maintenance_tasks[n].frequency);
+      if (allTasks.length > 0) {
+        html += '<div class="detail-section"><h3>Tasks</h3>';
+        for (var t = 0; t < allTasks.length; t++) {
+          html += '<div style="font-size:13px;padding:3px 0;color:#F0F4F8">' + allTasks[t] + '</div>';
+        }
+        html += '</div>';
+      }
+
+      content.innerHTML = html;
+    })
+    .catch(function() {
+      content.innerHTML = '<div style="color:#F87171;padding:20px;text-align:center">Failed to load user data</div>';
+    });
+}
+</script>
+</body></html>

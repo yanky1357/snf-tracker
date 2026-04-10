@@ -473,9 +473,12 @@ def admin_user_activity(uid):
 
 @app.route('/reef/admin')
 def admin_dashboard():
+    return send_from_directory(REEF_STATIC, 'admin.html')
+
+def _old_admin():
     return '''<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ReefPilot Admin</title>
+<title>ReefPilot Admin OLD</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0B1622;color:#F0F4F8;min-height:100vh}
