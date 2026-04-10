@@ -1264,126 +1264,6 @@ if (!localStorage.getItem('sw-clean-v11') && 'serviceWorker' in navigator) {
                 <!-- Filled by JS -->
             </div>
 
-            <!-- Add Livestock Modal -->
-            <div id="add-livestock-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Add Livestock">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3>Add Livestock</h3>
-                        <button class="modal-close" aria-label="Close" onclick="closeModal('add-livestock-modal')">&times;</button>
-                    </div>
-                    <form novalidate onsubmit="return handleAddLivestock(event)">
-                        <div class="form-group">
-                            <label>Category</label>
-                            <select id="ls-category">
-                                <option value="fish">Fish</option>
-                                <option value="coral">Coral</option>
-                                <option value="invertebrate">Invertebrate</option>
-                                <option value="anemone">Anemone</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Common Name</label>
-                            <input type="text" id="ls-common-name" placeholder="e.g. Clownfish" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Species (optional)</label>
-                            <input type="text" id="ls-species" placeholder="e.g. Amphiprion ocellaris">
-                        </div>
-                        <div class="form-group">
-                            <label>Nickname (optional)</label>
-                            <input type="text" id="ls-nickname" placeholder="e.g. Nemo">
-                        </div>
-                        <div class="form-group">
-                            <label>Quantity</label>
-                            <input type="text" id="ls-quantity" value="1">
-                        </div>
-                        <div class="form-group">
-                            <label>When did you get it?</label>
-                            <input type="date" id="ls-date-added" style="color:var(--text-primary)">
-                            <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">Leave empty for today. Pick a past date if you've had it a while.</div>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-full">Add</button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Add Equipment Modal -->
-            <div id="add-equipment-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Add Equipment">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3>Add Equipment</h3>
-                        <button class="modal-close" aria-label="Close" onclick="closeModal('add-equipment-modal')">&times;</button>
-                    </div>
-                    <form novalidate onsubmit="return handleAddEquipment(event)">
-                        <div class="form-group">
-                            <label>Category</label>
-                            <select id="eq-category">
-                                <option value="lighting">Lighting</option>
-                                <option value="skimmer">Skimmer</option>
-                                <option value="pump">Return Pump</option>
-                                <option value="powerhead">Powerhead/Wavemaker</option>
-                                <option value="heater">Heater</option>
-                                <option value="ato">ATO</option>
-                                <option value="doser">Doser</option>
-                                <option value="controller">Controller</option>
-                                <option value="filtration">Filtration</option>
-                                <option value="reactor">Reactor</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Brand</label>
-                            <input type="text" id="eq-brand" placeholder="e.g. EcoTech" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Model</label>
-                            <input type="text" id="eq-model" placeholder="e.g. Radion XR30">
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-full">Add</button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Tank Edit Modal -->
-            <div id="tank-edit-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Edit Tank">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3>Edit Tank Profile</h3>
-                        <button class="modal-close" aria-label="Close" onclick="closeModal('tank-edit-modal')">&times;</button>
-                    </div>
-                    <form novalidate onsubmit="return handleTankEdit(event)">
-                        <div class="form-group">
-                            <label>Display Name</label>
-                            <input type="text" id="edit-display-name">
-                        </div>
-                        <div class="form-group">
-                            <label>Tank Size (gallons)</label>
-                            <input type="text" id="edit-tank-size">
-                        </div>
-                        <div class="form-group">
-                            <label>Tank Type</label>
-                            <select id="edit-tank-type">
-                                <option value="fowlr">Fish Only with Live Rock</option>
-                                <option value="soft_coral">Soft Coral Reef</option>
-                                <option value="lps">LPS Dominant Reef</option>
-                                <option value="sps">SPS Dominant Reef</option>
-                                <option value="mixed_reef">Mixed Reef</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Salt Brand</label>
-                            <select id="edit-salt-brand">
-                                <!-- Filled by JS -->
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Sump Size (gallons)</label>
-                            <input type="text" id="edit-sump-size">
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-full">Save</button>
-                    </form>
-                </div>
-            </div>
         </section>
 
         <!-- More Tab -->
@@ -1649,6 +1529,125 @@ if (!localStorage.getItem('sw-clean-v11') && 'serviceWorker' in navigator) {
             <span>More</span>
         </button>
     </nav>
+</div>
+
+<!-- Global Modals (outside tab sections so they work from any tab) -->
+<div id="add-livestock-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Add Livestock">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Add Livestock</h3>
+            <button class="modal-close" aria-label="Close" onclick="closeModal('add-livestock-modal')">&times;</button>
+        </div>
+        <form novalidate onsubmit="return handleAddLivestock(event)">
+            <div class="form-group">
+                <label>Category</label>
+                <select id="ls-category">
+                    <option value="fish">Fish</option>
+                    <option value="coral">Coral</option>
+                    <option value="invertebrate">Invertebrate</option>
+                    <option value="anemone">Anemone</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Common Name</label>
+                <input type="text" id="ls-common-name" placeholder="e.g. Clownfish" required>
+            </div>
+            <div class="form-group">
+                <label>Species (optional)</label>
+                <input type="text" id="ls-species" placeholder="e.g. Amphiprion ocellaris">
+            </div>
+            <div class="form-group">
+                <label>Nickname (optional)</label>
+                <input type="text" id="ls-nickname" placeholder="e.g. Nemo">
+            </div>
+            <div class="form-group">
+                <label>Quantity</label>
+                <input type="text" id="ls-quantity" value="1">
+            </div>
+            <div class="form-group">
+                <label>When did you get it?</label>
+                <input type="date" id="ls-date-added" style="color:var(--text-primary)">
+                <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">Leave empty for today. Pick a past date if you've had it a while.</div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Add</button>
+        </form>
+    </div>
+</div>
+
+<div id="add-equipment-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Add Equipment">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Add Equipment</h3>
+            <button class="modal-close" aria-label="Close" onclick="closeModal('add-equipment-modal')">&times;</button>
+        </div>
+        <form novalidate onsubmit="return handleAddEquipment(event)">
+            <div class="form-group">
+                <label>Category</label>
+                <select id="eq-category">
+                    <option value="lighting">Lighting</option>
+                    <option value="skimmer">Skimmer</option>
+                    <option value="pump">Return Pump</option>
+                    <option value="powerhead">Powerhead/Wavemaker</option>
+                    <option value="heater">Heater</option>
+                    <option value="ato">ATO</option>
+                    <option value="doser">Doser</option>
+                    <option value="controller">Controller</option>
+                    <option value="filtration">Filtration</option>
+                    <option value="reactor">Reactor</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Brand</label>
+                <input type="text" id="eq-brand" placeholder="e.g. EcoTech" required>
+            </div>
+            <div class="form-group">
+                <label>Model</label>
+                <input type="text" id="eq-model" placeholder="e.g. Radion XR30">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Add</button>
+        </form>
+    </div>
+</div>
+
+<div id="tank-edit-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Edit Tank">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Edit Tank Profile</h3>
+            <button class="modal-close" aria-label="Close" onclick="closeModal('tank-edit-modal')">&times;</button>
+        </div>
+        <form novalidate onsubmit="return handleTankEdit(event)">
+            <div class="form-group">
+                <label>Display Name</label>
+                <input type="text" id="edit-display-name">
+            </div>
+            <div class="form-group">
+                <label>Tank Size (gallons)</label>
+                <input type="text" id="edit-tank-size">
+            </div>
+            <div class="form-group">
+                <label>Tank Type</label>
+                <select id="edit-tank-type">
+                    <option value="fowlr">Fish Only with Live Rock</option>
+                    <option value="soft_coral">Soft Coral Reef</option>
+                    <option value="lps">LPS Dominant Reef</option>
+                    <option value="sps">SPS Dominant Reef</option>
+                    <option value="mixed_reef">Mixed Reef</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Salt Brand</label>
+                <select id="edit-salt-brand">
+                    <!-- Filled by JS -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Sump Size (gallons)</label>
+                <input type="text" id="edit-sump-size">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Save</button>
+        </form>
+    </div>
 </div>
 
 <!-- Toast Container -->

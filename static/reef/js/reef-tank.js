@@ -192,6 +192,7 @@ async function handleAddLivestock(e) {
         closeModal('add-livestock-modal');
         showToast('Livestock added', 'success');
         loadTankData();
+        if (typeof loadHomeLivestock === 'function') loadHomeLivestock();
         // Reset form
         document.getElementById('ls-common-name').value = '';
         document.getElementById('ls-species').value = '';
