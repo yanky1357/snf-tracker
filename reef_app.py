@@ -378,49 +378,133 @@ def delete_account():
 
 # ── Admin Stats ────────────────────────────────────────────────────────────
 
+ADMIN_KEY = os.environ.get('ADMIN_KEY', 'reef2026yanky')
+
 @app.route('/reef/api/admin/stats')
 def admin_stats():
     key = request.args.get('key', '')
-    if key != 'reef2026yanky':
+    if key != ADMIN_KEY:
         return jsonify({'error': 'Unauthorized'}), 401
-
     conn = get_db()
     try:
         total_users = db_fetchval(conn, 'SELECT COUNT(*) FROM reef_users') or 0
         onboarded = db_fetchval(conn, 'SELECT COUNT(*) FROM reef_users WHERE onboarded = 1') or 0
-
         if USE_POSTGRES:
             today_users = db_fetchval(conn, "SELECT COUNT(*) FROM reef_users WHERE created_at >= CURRENT_DATE") or 0
             week_users = db_fetchval(conn, "SELECT COUNT(*) FROM reef_users WHERE created_at >= CURRENT_DATE - interval '7 days'") or 0
-            recent = db_fetchall(conn, '''
-                SELECT id, email, display_name, created_at, onboarded, tank_type, tank_size_gallons
-                FROM reef_users ORDER BY created_at DESC LIMIT 20
-            ''')
+            recent = db_fetchall(conn, "SELECT id, email, display_name, created_at, onboarded, tank_type, tank_size_gallons FROM reef_users ORDER BY created_at DESC LIMIT 30")
         else:
             today_users = db_fetchval(conn, "SELECT COUNT(*) FROM reef_users WHERE created_at >= date('now')") or 0
             week_users = db_fetchval(conn, "SELECT COUNT(*) FROM reef_users WHERE created_at >= date('now', '-7 days')") or 0
-            recent = db_fetchall(conn, '''
-                SELECT id, email, display_name, created_at, onboarded, tank_type, tank_size_gallons
-                FROM reef_users ORDER BY created_at DESC LIMIT 20
-            ''')
-
+            recent = db_fetchall(conn, "SELECT id, email, display_name, created_at, onboarded, tank_type, tank_size_gallons FROM reef_users ORDER BY created_at DESC LIMIT 30")
         return jsonify({
-            'total_users': total_users,
-            'onboarded_users': onboarded,
-            'signups_today': today_users,
-            'signups_this_week': week_users,
-            'recent_users': [{
-                'id': u['id'],
-                'email': u['email'],
-                'name': u.get('display_name', ''),
-                'joined': str(u.get('created_at', '')),
-                'onboarded': bool(u.get('onboarded')),
-                'tank_type': u.get('tank_type', ''),
-                'tank_size': u.get('tank_size_gallons', ''),
-            } for u in (recent or [])]
+            'total_users': total_users, 'onboarded_users': onboarded,
+            'signups_today': today_users, 'signups_this_week': week_users,
+            'recent_users': [{'id': u['id'], 'email': u['email'], 'name': u.get('display_name',''),
+                'joined': str(u.get('created_at','')), 'onboarded': bool(u.get('onboarded')),
+                'tank_type': u.get('tank_type',''), 'tank_size': u.get('tank_size_gallons','')}
+                for u in (recent or [])]
         })
     finally:
         conn.close()
+
+@app.route('/reef/admin')
+def admin_dashboard():
+    return '''<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ReefPilot Admin</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0B1622;color:#F0F4F8;min-height:100vh}
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-box{background:#162233;border-radius:16px;padding:32px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.3)}
+.login-box h1{color:#00B4D8;font-size:22px;margin-bottom:8px;text-align:center}
+.login-box p{color:#8899AA;font-size:13px;text-align:center;margin-bottom:24px}
+.login-box input{width:100%;padding:12px 14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#F0F4F8;font-size:15px;margin-bottom:16px;outline:none}
+.login-box input:focus{border-color:#00B4D8;background:rgba(0,180,216,0.06)}
+.login-box button{width:100%;padding:13px;background:linear-gradient(135deg,#00ccee,#00B4D8,#0096B7);color:white;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer}
+.login-box button:active{transform:scale(0.98)}
+.login-box .err{color:#F87171;font-size:13px;text-align:center;margin-bottom:12px;display:none}
+.dashboard{display:none;padding:20px;max-width:800px;margin:0 auto}
+.dash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.dash-header h1{color:#00B4D8;font-size:24px;font-weight:700}
+.dash-header .refresh{color:#8899AA;font-size:12px;cursor:pointer}
+.dash-header .refresh:hover{color:#00B4D8}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:28px}
+.stat-card{background:#162233;border-radius:14px;padding:20px;text-align:center;border:1px solid rgba(255,255,255,0.04);box-shadow:0 4px 16px rgba(0,0,0,0.2)}
+.stat-card .num{font-size:36px;font-weight:800;color:#00B4D8;line-height:1.1}
+.stat-card .label{font-size:12px;color:#8899AA;margin-top:6px;text-transform:uppercase;letter-spacing:0.5px}
+.stat-card.green .num{color:#34D399}
+.stat-card.amber .num{color:#FBBF24}
+.users-table{width:100%;border-collapse:separate;border-spacing:0}
+.users-table th{text-align:left;padding:10px 12px;font-size:11px;color:#8899AA;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.users-table td{padding:10px 12px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.03)}
+.users-table tr:hover td{background:rgba(0,180,216,0.04)}
+.badge{display:inline-block;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:600}
+.badge.yes{background:rgba(52,211,153,0.15);color:#34D399}
+.badge.no{background:rgba(248,113,113,0.15);color:#F87171}
+.section-title{font-size:16px;font-weight:600;color:#F0F4F8;margin-bottom:12px}
+.auto-refresh{color:#8899AA;font-size:11px;text-align:center;margin-top:20px;padding:12px}
+</style></head><body>
+<div class="login-wrap" id="loginWrap">
+ <div class="login-box">
+  <h1>ReefPilot Admin</h1>
+  <p>Enter your admin password</p>
+  <div class="err" id="loginErr">Wrong password</div>
+  <input type="password" id="passInput" placeholder="Password" autofocus>
+  <button onclick="tryLogin()">Sign In</button>
+ </div>
+</div>
+<div class="dashboard" id="dash">
+ <div class="dash-header">
+  <h1>ReefPilot Dashboard</h1>
+  <span class="refresh" onclick="loadStats()">Refresh</span>
+ </div>
+ <div class="stats-grid" id="statsGrid"></div>
+ <div class="section-title">Recent Users</div>
+ <div style="overflow-x:auto;background:#162233;border-radius:14px;border:1px solid rgba(255,255,255,0.04)">
+  <table class="users-table"><thead><tr>
+   <th>#</th><th>Name</th><th>Email</th><th>Joined</th><th>Tank</th><th>Setup</th>
+  </tr></thead><tbody id="usersBody"></tbody></table>
+ </div>
+ <div class="auto-refresh" id="refreshNote">Auto-refreshes every 30 seconds</div>
+</div>
+<script>
+let adminKey='';
+document.getElementById('passInput').addEventListener('keydown',e=>{if(e.key==='Enter')tryLogin()});
+function tryLogin(){
+ adminKey=document.getElementById('passInput').value;
+ fetch('/reef/api/admin/stats?key='+encodeURIComponent(adminKey))
+  .then(r=>{if(!r.ok)throw 0;return r.json()})
+  .then(d=>{
+   document.getElementById('loginWrap').style.display='none';
+   document.getElementById('dash').style.display='block';
+   render(d);
+   setInterval(loadStats,30000);
+  })
+  .catch(()=>{document.getElementById('loginErr').style.display='block'});
+}
+function loadStats(){
+ fetch('/reef/api/admin/stats?key='+encodeURIComponent(adminKey))
+  .then(r=>r.json()).then(render).catch(()=>{});
+}
+function render(d){
+ document.getElementById('statsGrid').innerHTML=`
+  <div class="stat-card"><div class="num">${d.total_users}</div><div class="label">Total Users</div></div>
+  <div class="stat-card green"><div class="num">${d.onboarded_users}</div><div class="label">Onboarded</div></div>
+  <div class="stat-card amber"><div class="num">${d.signups_today}</div><div class="label">Today</div></div>
+  <div class="stat-card"><div class="num">${d.signups_this_week}</div><div class="label">This Week</div></div>`;
+ const tbody=document.getElementById('usersBody');
+ tbody.innerHTML=d.recent_users.map((u,i)=>{
+  const dt=new Date(u.joined);
+  const time=isNaN(dt)?u.joined:dt.toLocaleDateString()+' '+dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const tank=u.tank_size?(u.tank_size+'g '+(u.tank_type||'').replace(/_/g,' ')):'—';
+  return `<tr><td>${u.id}</td><td>${u.name||'—'}</td><td>${u.email}</td><td>${time}</td><td>${tank}</td>
+   <td><span class="badge ${u.onboarded?'yes':'no'}">${u.onboarded?'Done':'Pending'}</span></td></tr>`;
+ }).join('');
+ document.getElementById('refreshNote').textContent='Last updated: '+new Date().toLocaleTimeString()+' · Auto-refreshes every 30s';
+}
+</script></body></html>'''
 
 
 @app.route('/reef/api/auth/me')
