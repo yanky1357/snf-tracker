@@ -268,41 +268,43 @@ def init_db():
                 ''')
             except Exception:
                 pass  # Column already exists
-            # Dosing/Food Presets
-            conn.cursor().execute('''
-                CREATE TABLE IF NOT EXISTS dosing_presets (
-                    id SERIAL PRIMARY KEY,
-                    user_id INTEGER REFERENCES reef_users(id),
-                    name VARCHAR(100) NOT NULL,
-                    preset_type VARCHAR(20) DEFAULT 'dosing',
-                    amount VARCHAR(50),
-                    frequency VARCHAR(20) DEFAULT 'daily',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            conn.cursor().execute('''
-                CREATE TABLE IF NOT EXISTS dosing_logs (
-                    id SERIAL PRIMARY KEY,
-                    user_id INTEGER,
-                    preset_id INTEGER REFERENCES dosing_presets(id) ON DELETE CASCADE,
-                    logged_date DATE DEFAULT CURRENT_DATE,
-                    notes VARCHAR(255),
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(user_id, preset_id, logged_date)
-                )
-            ''')
-            # Daily Journal
-            conn.cursor().execute('''
-                CREATE TABLE IF NOT EXISTS daily_journal (
-                    id SERIAL PRIMARY KEY,
-                    user_id INTEGER REFERENCES reef_users(id),
-                    log_date DATE DEFAULT CURRENT_DATE,
-                    notes TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(user_id, log_date)
-                )
-            ''')
+            # Dosing/Food Presets & Daily Journal
+            try:
+                conn.cursor().execute('''
+                    CREATE TABLE IF NOT EXISTS dosing_presets (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER,
+                        name VARCHAR(100) NOT NULL,
+                        preset_type VARCHAR(20) DEFAULT 'dosing',
+                        amount VARCHAR(50),
+                        frequency VARCHAR(20) DEFAULT 'daily',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')
+                conn.cursor().execute('''
+                    CREATE TABLE IF NOT EXISTS dosing_logs (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER,
+                        preset_id INTEGER,
+                        logged_date DATE DEFAULT CURRENT_DATE,
+                        notes VARCHAR(255),
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(user_id, preset_id, logged_date)
+                    )
+                ''')
+                conn.cursor().execute('''
+                    CREATE TABLE IF NOT EXISTS daily_journal (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER,
+                        log_date DATE DEFAULT CURRENT_DATE,
+                        notes TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(user_id, log_date)
+                    )
+                ''')
+            except Exception:
+                pass
         else:
             conn.executescript('''
                 CREATE TABLE IF NOT EXISTS reef_users (
