@@ -570,9 +570,12 @@ function render(d){
   const dt=new Date(u.joined);
   const time=isNaN(dt)?u.joined:dt.toLocaleDateString()+' '+dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   const tank=u.tank_size?(u.tank_size+'g '+(u.tank_type||'').replace(/_/g,' ')):'—';
-  return `<tr style="cursor:pointer" onclick="showUser(${u.id})"><td>${u.id}</td><td>${u.name||'—'}</td><td>${u.email}</td><td>${time}</td><td>${tank}</td>
+  return `<tr data-uid="${u.id}" style="cursor:pointer"><td>${u.id}</td><td>${u.name||'—'}</td><td>${u.email}</td><td>${time}</td><td>${tank}</td>
    <td><span class="badge ${u.onboarded?'yes':'no'}">${u.onboarded?'Done':'Pending'}</span></td></tr>`;
  }).join('');
+ tbody.querySelectorAll('tr').forEach(tr=>{
+  tr.addEventListener('click',()=>showUser(parseInt(tr.dataset.uid)));
+ });
  document.getElementById('refreshNote').textContent='Last updated: '+new Date().toLocaleTimeString()+' · Auto-refreshes every 30s';
 }
 function showUser(uid){
