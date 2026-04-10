@@ -1747,6 +1747,167 @@ def recalculate_costs():
         conn.close()
 
 
+# ── Dosing/Food Presets ────────────────────────────────────────────────────
+
+@app.route('/reef/api/dosing-presets')
+@require_auth
+def get_dosing_presets():
+    uid = session['reef_user_id']
+    conn = get_db()
+    try:
+        presets = db_fetchall(conn, '''
+            SELECT id, name, preset_type, amount, frequency, created_at
+            FROM dosing_presets WHERE user_id = ? ORDER BY created_at ASC
+        ''', [uid])
+
+        today_str = date.today().isoformat()
+        result = []
+        for p in (presets or []):
+            logged = db_fetchone(conn, '''
+                SELECT id FROM dosing_logs
+                WHERE user_id = ? AND preset_id = ? AND logged_date = ?
+            ''', [uid, p['id'], today_str])
+            result.append({
+                'id': p['id'], 'name': p['name'], 'preset_type': p['preset_type'],
+                'amount': p['amount'], 'frequency': p['frequency'],
+                'logged_today': logged is not None,
+            })
+        return jsonify({'presets': result})
+    finally:
+        conn.close()
+
+
+@app.route('/reef/api/dosing-presets', methods=['POST'])
+@require_auth
+def create_dosing_preset():
+    uid = session['reef_user_id']
+    data = request.json or {}
+    name = (data.get('name') or '').strip()
+    if not name:
+        return jsonify({'error': 'Name is required'}), 400
+    conn = get_db()
+    try:
+        db_execute(conn, '''
+            INSERT INTO dosing_presets (user_id, name, preset_type, amount, frequency)
+            VALUES (?, ?, ?, ?, ?)
+        ''', [uid, name, data.get('preset_type', 'dosing'), data.get('amount', ''), data.get('frequency', 'daily')])
+        conn.commit()
+        return jsonify({'ok': True})
+    finally:
+        conn.close()
+
+
+@app.route('/reef/api/dosing-presets/<int:pid>', methods=['DELETE'])
+@require_auth
+def delete_dosing_preset(pid):
+    uid = session['reef_user_id']
+    conn = get_db()
+    try:
+        db_execute(conn, 'DELETE FROM dosing_logs WHERE preset_id = ? AND user_id = ?', [pid, uid])
+        db_execute(conn, 'DELETE FROM dosing_presets WHERE id = ? AND user_id = ?', [pid, uid])
+        conn.commit()
+        return jsonify({'ok': True})
+    finally:
+        conn.close()
+
+
+@app.route('/reef/api/dosing-presets/<int:pid>/log', methods=['POST'])
+@require_auth
+def log_dosing_preset(pid):
+    uid = session['reef_user_id']
+    conn = get_db()
+    try:
+        today_str = date.today().isoformat()
+        # Check if already logged
+        existing = db_fetchone(conn, '''
+            SELECT id FROM dosing_logs WHERE user_id = ? AND preset_id = ? AND logged_date = ?
+        ''', [uid, pid, today_str])
+        if existing:
+            return jsonify({'ok': True, 'already_logged': True})
+        db_execute(conn, '''
+            INSERT INTO dosing_logs (user_id, preset_id, logged_date) VALUES (?, ?, ?)
+        ''', [uid, pid, today_str])
+        conn.commit()
+        return jsonify({'ok': True})
+    finally:
+        conn.close()
+
+
+@app.route('/reef/api/dosing-presets/<int:pid>/unlog', methods=['DELETE'])
+@require_auth
+def unlog_dosing_preset(pid):
+    uid = session['reef_user_id']
+    conn = get_db()
+    try:
+        today_str = date.today().isoformat()
+        db_execute(conn, '''
+            DELETE FROM dosing_logs WHERE user_id = ? AND preset_id = ? AND logged_date = ?
+        ''', [uid, pid, today_str])
+        conn.commit()
+        return jsonify({'ok': True})
+    finally:
+        conn.close()
+
+
+# ── Daily Journal ──────────────────────────────────────────────────────────
+
+@app.route('/reef/api/journal')
+@require_auth
+def get_journal():
+    uid = session['reef_user_id']
+    conn = get_db()
+    try:
+        entries = db_fetchall(conn, '''
+            SELECT id, log_date, notes, created_at FROM daily_journal
+            WHERE user_id = ? ORDER BY log_date DESC LIMIT 14
+        ''', [uid])
+        return jsonify({'entries': [dict(e) for e in (entries or [])]})
+    finally:
+        conn.close()
+
+
+@app.route('/reef/api/journal', methods=['POST'])
+@require_auth
+def save_journal():
+    uid = session['reef_user_id']
+    data = request.json or {}
+    notes = (data.get('notes') or '').strip()
+    log_date = data.get('log_date', date.today().isoformat())
+    if not notes:
+        return jsonify({'error': 'Notes required'}), 400
+    conn = get_db()
+    try:
+        if USE_POSTGRES:
+            db_execute(conn, '''
+                INSERT INTO daily_journal (user_id, log_date, notes)
+                VALUES (?, ?, ?)
+                ON CONFLICT (user_id, log_date)
+                DO UPDATE SET notes = EXCLUDED.notes, updated_at = CURRENT_TIMESTAMP
+            ''', [uid, log_date, notes])
+        else:
+            db_execute(conn, '''
+                INSERT OR REPLACE INTO daily_journal (user_id, log_date, notes)
+                VALUES (?, ?, ?)
+            ''', [uid, log_date, notes])
+        conn.commit()
+        return jsonify({'ok': True})
+    finally:
+        conn.close()
+
+
+@app.route('/reef/api/journal/<log_date>', methods=['DELETE'])
+@require_auth
+def delete_journal(log_date):
+    uid = session['reef_user_id']
+    conn = get_db()
+    try:
+        db_execute(conn, 'DELETE FROM daily_journal WHERE user_id = ? AND log_date = ?', [uid, log_date])
+        conn.commit()
+        return jsonify({'ok': True})
+    finally:
+        conn.close()
+
+
 # ── Milestones ─────────────────────────────────────────────────────────────
 
 @app.route('/reef/api/milestones')

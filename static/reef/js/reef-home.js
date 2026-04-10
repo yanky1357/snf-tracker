@@ -16,6 +16,8 @@ async function loadDashboard() {
         renderDashMilestones(data.active_milestones);
         renderCostSummary(data.cost_summary);
         renderRecentActivity();
+        loadRoutinePresets();
+        loadJournal();
     } catch (err) {
         if (!navigator.onLine) {
             showToast('You\'re offline — dashboard data may be stale', 'error');
@@ -454,4 +456,153 @@ function getTimeAgo(dateStr) {
     if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
     if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
     return formatDate(dateStr);
+}
+
+
+// ── Dosing/Food Presets ───────────────────────────────────────────────────
+
+async function loadRoutinePresets() {
+    try {
+        const data = await api('/dosing-presets');
+        const section = document.getElementById('routine-section');
+        const container = document.getElementById('routine-presets');
+        if (!data.presets || data.presets.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+        section.style.display = 'block';
+        container.innerHTML = data.presets.map(p => {
+            const icon = p.preset_type === 'food' ? '🍽️' : p.preset_type === 'supplement' ? '💊' : '💧';
+            const logged = p.logged_today;
+            return `<button class="routine-btn ${logged ? 'logged' : ''}" onclick="togglePresetLog(${p.id}, ${logged})" data-id="${p.id}">
+                <span class="routine-icon">${logged ? '✅' : icon}</span>
+                <span class="routine-name">${p.name}</span>
+                ${p.amount ? `<span class="routine-amount">${p.amount}</span>` : ''}
+            </button>`;
+        }).join('');
+    } catch (e) {}
+}
+
+async function togglePresetLog(id, isLogged) {
+    try {
+        if (isLogged) {
+            await api(`/dosing-presets/${id}/unlog`, { method: 'DELETE' });
+        } else {
+            await api(`/dosing-presets/${id}/log`, { method: 'POST' });
+        }
+        loadRoutinePresets();
+    } catch (e) {
+        showToast('Failed to log preset', 'error');
+    }
+}
+
+function openPresetManager() {
+    openModal('preset-modal');
+    loadPresetList();
+}
+
+async function loadPresetList() {
+    try {
+        const data = await api('/dosing-presets');
+        const list = document.getElementById('preset-list');
+        if (!data.presets || data.presets.length === 0) {
+            list.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:20px;font-size:13px">No presets yet. Add one above!</div>';
+            return;
+        }
+        list.innerHTML = data.presets.map(p => {
+            const icon = p.preset_type === 'food' ? '🍽️' : p.preset_type === 'supplement' ? '💊' : '💧';
+            return `<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-deep);border-radius:10px;margin-bottom:8px">
+                <span style="font-size:20px">${icon}</span>
+                <div style="flex:1">
+                    <div style="font-size:14px;font-weight:600;color:var(--text-primary)">${p.name}</div>
+                    <div style="font-size:11px;color:var(--text-secondary)">${p.preset_type} ${p.amount ? '· ' + p.amount : ''} · ${p.frequency}</div>
+                </div>
+                <button onclick="deletePreset(${p.id})" style="background:none;border:none;color:var(--danger);cursor:pointer;padding:6px">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                </button>
+            </div>`;
+        }).join('');
+    } catch (e) {}
+}
+
+async function addPreset() {
+    const name = document.getElementById('preset-name').value.trim();
+    if (!name) { showToast('Enter a preset name', 'error'); return; }
+    const presetType = document.getElementById('preset-type').value;
+    const amount = document.getElementById('preset-amount').value.trim();
+    try {
+        await api('/dosing-presets', {
+            method: 'POST',
+            body: { name, preset_type: presetType, amount, frequency: 'daily' }
+        });
+        document.getElementById('preset-name').value = '';
+        document.getElementById('preset-amount').value = '';
+        showToast('Preset added!', 'success');
+        loadPresetList();
+        loadRoutinePresets();
+    } catch (e) {
+        showToast('Failed to add preset', 'error');
+    }
+}
+
+async function deletePreset(id) {
+    try {
+        await api(`/dosing-presets/${id}`, { method: 'DELETE' });
+        showToast('Preset removed', 'success');
+        loadPresetList();
+        loadRoutinePresets();
+    } catch (e) {
+        showToast('Failed to delete preset', 'error');
+    }
+}
+
+
+// ── Daily Journal ─────────────────────────────────────────────────────────
+
+async function loadJournal() {
+    try {
+        const data = await api('/journal');
+        const input = document.getElementById('journal-input');
+        const saveBtn = document.getElementById('journal-save-btn');
+        const history = document.getElementById('journal-history');
+
+        // Show today's note if exists
+        const today = new Date().toISOString().split('T')[0];
+        const todayEntry = (data.entries || []).find(e => e.log_date === today);
+        if (todayEntry) {
+            input.value = todayEntry.notes;
+        }
+
+        // Show save button on input
+        input.addEventListener('input', () => {
+            saveBtn.style.display = input.value.trim() ? 'block' : 'none';
+        });
+
+        // Render recent entries (exclude today)
+        const past = (data.entries || []).filter(e => e.log_date !== today).slice(0, 5);
+        if (past.length > 0) {
+            history.innerHTML = past.map(e => {
+                const d = new Date(e.log_date + 'T12:00:00');
+                const dayName = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                return `<div style="padding:10px 12px;background:var(--card-solid);border-radius:10px;margin-bottom:6px;border-left:3px solid var(--accent)">
+                    <div style="font-size:11px;color:var(--accent);font-weight:600;margin-bottom:4px">${dayName}</div>
+                    <div style="font-size:13px;color:var(--text-primary);line-height:1.4">${e.notes}</div>
+                </div>`;
+            }).join('');
+        } else {
+            history.innerHTML = '';
+        }
+    } catch (e) {}
+}
+
+async function saveJournal() {
+    const notes = document.getElementById('journal-input').value.trim();
+    if (!notes) return;
+    try {
+        await api('/journal', { method: 'POST', body: { notes } });
+        showToast('Note saved!', 'success');
+        document.getElementById('journal-save-btn').style.display = 'none';
+    } catch (e) {
+        showToast('Failed to save note', 'error');
+    }
 }

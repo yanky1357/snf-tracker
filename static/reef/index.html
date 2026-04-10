@@ -587,6 +587,28 @@ if (!localStorage.getItem('sw-clean-v11') && 'serviceWorker' in navigator) {
                     </div>
                 </div>
 
+                <!-- Today's Routine (Dosing/Food Presets) -->
+                <div class="dashboard-section" id="routine-section" style="display:none">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                        <h3 class="dash-section-title" style="margin:0">Today's Routine</h3>
+                        <button onclick="openPresetManager()" style="background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer">Manage</button>
+                    </div>
+                    <div id="routine-presets" class="routine-grid"></div>
+                </div>
+
+                <!-- Daily Journal -->
+                <div class="dashboard-section">
+                    <h3 class="dash-section-title">Daily Note</h3>
+                    <div style="position:relative">
+                        <textarea id="journal-input" placeholder="How's the tank today?" rows="2"
+                            style="width:100%;padding:12px;background:var(--card-solid);border:1px solid rgba(255,255,255,0.06);border-radius:12px;color:var(--text-primary);font-size:14px;resize:none;font-family:inherit;outline:none;transition:border-color 0.2s"
+                            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='rgba(255,255,255,0.06)'"></textarea>
+                        <button onclick="saveJournal()" id="journal-save-btn"
+                            style="position:absolute;right:8px;bottom:8px;background:var(--accent);color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;opacity:0.8;display:none">Save</button>
+                    </div>
+                    <div id="journal-history" style="margin-top:10px"></div>
+                </div>
+
                 <!-- Daily Briefing / Insights -->
                 <div class="dashboard-section">
                     <h3 class="dash-section-title">Insights</h3>
@@ -1523,6 +1545,36 @@ if (!localStorage.getItem('sw-clean-v11') && 'serviceWorker' in navigator) {
                     <button class="modal-close" aria-label="Close" onclick="closeModal('milestones-modal')">&times;</button>
                 </div>
                 <div id="milestones-full-list" class="milestones-list"></div>
+            </div>
+        </div>
+
+        <!-- Preset Manager Modal -->
+        <div id="preset-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Manage Presets">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Manage Presets</h2>
+                    <button class="modal-close" onclick="closeModal('preset-modal')">
+                        <svg viewBox="0 0 24 24" width="24" height="24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="currentColor"/></svg>
+                    </button>
+                </div>
+                <div style="padding:16px">
+                    <!-- Add new preset form -->
+                    <div style="background:var(--bg-deep);border-radius:12px;padding:16px;margin-bottom:16px">
+                        <div style="font-size:14px;font-weight:600;color:var(--accent);margin-bottom:12px">Add New Preset</div>
+                        <input type="text" id="preset-name" placeholder="Name (e.g. Feed Mysis)" style="width:100%;padding:10px 12px;background:var(--card-solid);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--text-primary);font-size:14px;margin-bottom:8px;outline:none">
+                        <div style="display:flex;gap:8px;margin-bottom:8px">
+                            <select id="preset-type" style="flex:1;padding:10px;background:var(--card-solid);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--text-primary);font-size:13px">
+                                <option value="dosing">Dosing</option>
+                                <option value="food">Food</option>
+                                <option value="supplement">Supplement</option>
+                            </select>
+                            <input type="text" id="preset-amount" placeholder="Amount (e.g. 10ml)" style="flex:1;padding:10px;background:var(--card-solid);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--text-primary);font-size:13px;outline:none">
+                        </div>
+                        <button onclick="addPreset()" class="btn btn-primary btn-full" style="padding:10px">Add Preset</button>
+                    </div>
+                    <!-- Existing presets list -->
+                    <div id="preset-list"></div>
+                </div>
             </div>
         </div>
 
