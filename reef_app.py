@@ -2891,8 +2891,6 @@ def get_livestock_photo(lid):
         conn.close()
 
 
-@app.route('/reef/api/livestock/<int:lid>', methods=['DELETE'])
-@require_auth
 @app.route('/reef/api/livestock/<int:lid>', methods=['PUT'])
 @require_auth
 def update_livestock(lid):
