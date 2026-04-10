@@ -355,7 +355,9 @@ function renderDashMilestones(milestones) {
 // ── Cost Summary ────────────────────────────────────────────────────────
 
 function renderCostSummary(summary) {
+    const card = document.getElementById('cost-summary-card');
     const amountEl = document.getElementById('cost-summary-amount');
+    const labelEl = document.querySelector('.cost-summary-label');
     Promise.all([api('/recurring-costs'), api('/costs')]).then(([recurringData, costsData]) => {
         const recurringTotal = recurringData.recurring_total || 0;
         const costs = costsData.costs || [];
@@ -366,7 +368,14 @@ function renderCostSummary(summary) {
         });
         const purchaseTotal = thisMonthPurchases.reduce((sum, c) => sum + parseFloat(c.amount), 0);
         const grandTotal = recurringTotal + purchaseTotal;
-        amountEl.textContent = '$' + grandTotal.toFixed(2);
+        if (grandTotal === 0 && costs.length === 0 && recurringTotal === 0) {
+            // No cost data — show CTA to start tracking
+            labelEl.textContent = 'Monthly Reef Expenses';
+            amountEl.innerHTML = '<div style="font-size:14px;color:var(--accent)">Start tracking your costs</div><div style="font-size:11px;color:var(--text-secondary);margin-top:4px">Let AI estimate your monthly expenses</div>';
+            card.onclick = function() { switchTab('costs'); setTimeout(function() { if (typeof startCostWizard === 'function') startCostWizard(); }, 300); };
+        } else {
+            amountEl.textContent = '$' + grandTotal.toFixed(2);
+        }
     }).catch(() => {
         const total = (summary && summary.month_total !== undefined) ? summary.month_total : 0;
         amountEl.textContent = '$' + total.toFixed(2);
