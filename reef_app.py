@@ -408,6 +408,69 @@ def admin_stats():
     finally:
         conn.close()
 
+@app.route('/reef/api/admin/user/<int:uid>')
+def admin_user_activity(uid):
+    key = request.args.get('key', '')
+    if key != ADMIN_KEY:
+        return jsonify({'error': 'Unauthorized'}), 401
+    conn = get_db()
+    try:
+        user = db_fetchone(conn, 'SELECT * FROM reef_users WHERE id = ?', [uid])
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Parameter logs
+        params = db_fetchall(conn, '''
+            SELECT parameter_type, value, unit, source, logged_at
+            FROM parameter_logs WHERE user_id = ? ORDER BY logged_at DESC LIMIT 50
+        ''', [uid])
+
+        # Chat messages
+        chats = db_fetchall(conn, '''
+            SELECT role, content, created_at
+            FROM chat_history WHERE user_id = ? ORDER BY created_at DESC LIMIT 30
+        ''', [uid])
+
+        # Tasks
+        cal_tasks = db_fetchall(conn, '''
+            SELECT title, frequency, next_due, category FROM calendar_tasks WHERE user_id = ?
+        ''', [uid])
+        maint_tasks = db_fetchall(conn, '''
+            SELECT task_name, frequency, next_due FROM maintenance_schedule WHERE user_id = ?
+        ''', [uid])
+
+        # Costs
+        recurring = db_fetchall(conn, '''
+            SELECT category, description, monthly_amount, source FROM recurring_costs WHERE user_id = ?
+        ''', [uid])
+        purchases = db_fetchall(conn, '''
+            SELECT category, description, amount, purchase_date FROM cost_entries WHERE user_id = ? ORDER BY purchase_date DESC LIMIT 20
+        ''', [uid])
+
+        # Livestock & equipment
+        livestock = db_fetchall(conn, 'SELECT category, common_name, species, quantity FROM livestock WHERE user_id = ?', [uid])
+        equipment = db_fetchall(conn, 'SELECT category, brand, model FROM equipment WHERE user_id = ?', [uid])
+
+        return jsonify({
+            'user': {
+                'id': user['id'], 'email': user['email'], 'name': user.get('display_name', ''),
+                'joined': str(user.get('created_at', '')), 'onboarded': bool(user.get('onboarded')),
+                'tank_size': user.get('tank_size_gallons'), 'tank_type': user.get('tank_type'),
+                'salt_brand': user.get('salt_brand'), 'experience': user.get('experience_level'),
+                'fish_count': user.get('fish_count'), 'dosing': user.get('dosing'),
+            },
+            'param_logs': [dict(p) for p in (params or [])],
+            'chat_history': [dict(c) for c in (chats or [])],
+            'calendar_tasks': [dict(t) for t in (cal_tasks or [])],
+            'maintenance_tasks': [dict(t) for t in (maint_tasks or [])],
+            'recurring_costs': [dict(r) for r in (recurring or [])],
+            'purchases': [dict(p) for p in (purchases or [])],
+            'livestock': [dict(l) for l in (livestock or [])],
+            'equipment': [dict(e) for e in (equipment or [])],
+        })
+    finally:
+        conn.close()
+
 @app.route('/reef/admin')
 def admin_dashboard():
     return '''<!DOCTYPE html>
@@ -461,13 +524,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <span class="refresh" onclick="loadStats()">Refresh</span>
  </div>
  <div class="stats-grid" id="statsGrid"></div>
- <div class="section-title">Recent Users</div>
+ <div class="section-title">Recent Users <span style="font-size:12px;color:#8899AA;font-weight:400">(click a user to see activity)</span></div>
  <div style="overflow-x:auto;background:#162233;border-radius:14px;border:1px solid rgba(255,255,255,0.04)">
   <table class="users-table"><thead><tr>
    <th>#</th><th>Name</th><th>Email</th><th>Joined</th><th>Tank</th><th>Setup</th>
   </tr></thead><tbody id="usersBody"></tbody></table>
  </div>
  <div class="auto-refresh" id="refreshNote">Auto-refreshes every 30 seconds</div>
+ <!-- User Detail Panel -->
+ <div id="userPanel" style="display:none;margin-top:20px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+   <div class="section-title" id="panelTitle" style="margin:0">User Activity</div>
+   <span style="color:#8899AA;font-size:13px;cursor:pointer" onclick="document.getElementById('userPanel').style.display='none'">Close</span>
+  </div>
+  <div id="panelContent"></div>
+ </div>
 </div>
 <script>
 let adminKey='';
@@ -499,10 +570,91 @@ function render(d){
   const dt=new Date(u.joined);
   const time=isNaN(dt)?u.joined:dt.toLocaleDateString()+' '+dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   const tank=u.tank_size?(u.tank_size+'g '+(u.tank_type||'').replace(/_/g,' ')):'—';
-  return `<tr><td>${u.id}</td><td>${u.name||'—'}</td><td>${u.email}</td><td>${time}</td><td>${tank}</td>
+  return `<tr style="cursor:pointer" onclick="showUser(${u.id})"><td>${u.id}</td><td>${u.name||'—'}</td><td>${u.email}</td><td>${time}</td><td>${tank}</td>
    <td><span class="badge ${u.onboarded?'yes':'no'}">${u.onboarded?'Done':'Pending'}</span></td></tr>`;
  }).join('');
  document.getElementById('refreshNote').textContent='Last updated: '+new Date().toLocaleTimeString()+' · Auto-refreshes every 30s';
+}
+function showUser(uid){
+ const panel=document.getElementById('userPanel');
+ const content=document.getElementById('panelContent');
+ content.innerHTML='<div style="text-align:center;padding:20px;color:#8899AA">Loading...</div>';
+ panel.style.display='block';
+ panel.scrollIntoView({behavior:'smooth'});
+ fetch('/reef/api/admin/user/'+uid+'?key='+encodeURIComponent(adminKey))
+  .then(r=>r.json()).then(d=>{
+   const u=d.user;
+   document.getElementById('panelTitle').textContent=u.name||u.email;
+   let html='<div class="stats-grid" style="margin-bottom:20px">';
+   html+=`<div class="stat-card"><div class="num">${d.param_logs.length}</div><div class="label">Param Logs</div></div>`;
+   html+=`<div class="stat-card"><div class="num">${d.chat_history.length}</div><div class="label">Chat Msgs</div></div>`;
+   html+=`<div class="stat-card"><div class="num">${d.livestock.length}</div><div class="label">Livestock</div></div>`;
+   html+=`<div class="stat-card"><div class="num">${d.recurring_costs.length}</div><div class="label">Costs</div></div>`;
+   html+='</div>';
+   // Profile
+   html+='<div style="background:#162233;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04)">';
+   html+=`<div style="font-size:14px;font-weight:600;color:#00B4D8;margin-bottom:10px">Profile</div>`;
+   html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">`;
+   html+=`<div><span style="color:#8899AA">Tank:</span> ${u.tank_size||'—'}g ${(u.tank_type||'').replace(/_/g,' ')}</div>`;
+   html+=`<div><span style="color:#8899AA">Salt:</span> ${u.salt_brand||'—'}</div>`;
+   html+=`<div><span style="color:#8899AA">Experience:</span> ${(u.experience||'—').replace(/_/g,' ')}</div>`;
+   html+=`<div><span style="color:#8899AA">Fish:</span> ${u.fish_count||'—'}</div>`;
+   html+=`<div><span style="color:#8899AA">Dosing:</span> ${u.dosing||'—'}</div>`;
+   html+=`<div><span style="color:#8899AA">Joined:</span> ${new Date(u.joined).toLocaleDateString()}</div>`;
+   html+='</div></div>';
+   // Recent params
+   if(d.param_logs.length){
+    html+='<div style="background:#162233;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04)">';
+    html+=`<div style="font-size:14px;font-weight:600;color:#00B4D8;margin-bottom:10px">Recent Parameters</div>`;
+    html+='<div style="display:flex;flex-wrap:wrap;gap:8px">';
+    d.param_logs.slice(0,20).forEach(p=>{
+     const dt=new Date(p.logged_at);
+     const time=isNaN(dt)?'':dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+     html+=`<div style="background:rgba(0,180,216,0.08);padding:6px 10px;border-radius:8px;font-size:12px">
+      <span style="color:#00B4D8;font-weight:600">${p.parameter_type}</span>
+      <span style="color:#F0F4F8">${p.value} ${p.unit||''}</span>
+      <span style="color:#8899AA;font-size:10px">${time}</span></div>`;
+    });
+    html+='</div></div>';
+   }
+   // Recent chat
+   if(d.chat_history.length){
+    html+='<div style="background:#162233;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04)">';
+    html+=`<div style="font-size:14px;font-weight:600;color:#00B4D8;margin-bottom:10px">Recent Chat</div>`;
+    d.chat_history.slice(0,10).forEach(c=>{
+     const isUser=c.role==='user';
+     const msg=c.content.length>150?c.content.substring(0,150)+'...':c.content;
+     html+=`<div style="padding:8px 12px;margin-bottom:6px;border-radius:10px;font-size:12px;
+      background:${isUser?'rgba(0,180,216,0.1)':'rgba(255,255,255,0.04)'};
+      border-left:3px solid ${isUser?'#00B4D8':'#34D399'}">
+      <span style="font-weight:600;color:${isUser?'#00B4D8':'#34D399'}">${isUser?'User':'AI'}:</span>
+      <span style="color:#F0F4F8"> ${msg.replace(/</g,'&lt;')}</span></div>`;
+    });
+    html+='</div>';
+   }
+   // Livestock
+   if(d.livestock.length){
+    html+='<div style="background:#162233;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04)">';
+    html+=`<div style="font-size:14px;font-weight:600;color:#00B4D8;margin-bottom:10px">Livestock</div>`;
+    d.livestock.forEach(l=>{
+     html+=`<div style="font-size:13px;padding:4px 0"><span style="color:#F0F4F8">${l.common_name||l.species||'—'}</span>
+      <span style="color:#8899AA"> x${l.quantity||1} · ${l.category||''}</span></div>`;
+    });
+    html+='</div>';
+   }
+   // Tasks
+   const allTasks=[...d.calendar_tasks.map(t=>({name:t.title,freq:t.frequency})),...d.maintenance_tasks.map(t=>({name:t.task_name,freq:t.frequency}))];
+   if(allTasks.length){
+    html+='<div style="background:#162233;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04)">';
+    html+=`<div style="font-size:14px;font-weight:600;color:#00B4D8;margin-bottom:10px">Tasks</div>`;
+    allTasks.forEach(t=>{
+     html+=`<div style="font-size:13px;padding:4px 0"><span style="color:#F0F4F8">${t.name}</span>
+      <span style="color:#8899AA"> · ${t.freq||''}</span></div>`;
+    });
+    html+='</div>';
+   }
+   content.innerHTML=html;
+  }).catch(()=>{content.innerHTML='<div style="color:#F87171;padding:20px;text-align:center">Failed to load</div>'});
 }
 </script></body></html>'''
 
