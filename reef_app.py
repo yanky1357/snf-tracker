@@ -726,6 +726,20 @@ def admin_user_activity(uid):
     finally:
         conn.close()
 
+@app.route('/reef/api/admin/verify-user')
+def admin_verify_user():
+    key = request.args.get('key', '')
+    if key != ADMIN_KEY:
+        return jsonify({'error': 'Unauthorized'}), 401
+    email = request.args.get('email', '')
+    conn = get_db()
+    try:
+        db_execute(conn, 'UPDATE reef_users SET email_verified = 1 WHERE email = ?', [email])
+        conn.commit()
+        return jsonify({'ok': True, 'email': email})
+    finally:
+        conn.close()
+
 @app.route('/reef/api/admin/export')
 def admin_export_csv():
     key = request.args.get('key', '')
