@@ -2893,6 +2893,37 @@ def get_livestock_photo(lid):
 
 @app.route('/reef/api/livestock/<int:lid>', methods=['DELETE'])
 @require_auth
+@app.route('/reef/api/livestock/<int:lid>', methods=['PUT'])
+@require_auth
+def update_livestock(lid):
+    uid = session['reef_user_id']
+    data = request.json or {}
+    conn = get_db()
+    try:
+        updates = []
+        params = []
+        for field in ['common_name', 'species', 'nickname', 'category', 'notes']:
+            if field in data:
+                updates.append(f'{field} = ?')
+                params.append(data[field])
+        if 'quantity' in data:
+            updates.append('quantity = ?')
+            params.append(int(data['quantity']))
+        if 'added_date' in data:
+            updates.append('added_date = ?')
+            params.append(data['added_date'])
+        if not updates:
+            return jsonify({'error': 'Nothing to update'}), 400
+        params.extend([lid, uid])
+        db_execute(conn, f'UPDATE livestock SET {", ".join(updates)} WHERE id = ? AND user_id = ?', params)
+        conn.commit()
+        return jsonify({'ok': True})
+    finally:
+        conn.close()
+
+
+@app.route('/reef/api/livestock/<int:lid>', methods=['DELETE'])
+@require_auth
 def delete_livestock(lid):
     uid = session['reef_user_id']
     conn = get_db()

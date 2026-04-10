@@ -77,7 +77,7 @@ function renderLivestock(livestock) {
             <div class="ls-info">
                 <div class="ls-name">${name}${l.quantity > 1 ? ' <span style="color:var(--accent)">x' + l.quantity + '</span>' : ''}</div>
                 <div class="ls-species">${l.category}${l.species ? ' · ' + l.species : ''}</div>
-                ${daysText ? `<div class="ls-age">${daysText}</div>` : ''}
+                ${daysText ? `<div class="ls-age" onclick="event.stopPropagation();editLivestockDate(${l.id}, '${l.added_date || ''}')" style="cursor:pointer">${daysText} ✏️</div>` : ''}
             </div>
             <div class="ls-actions">
                 ${!l.photo_url ? '' : `<button class="ls-photo-btn" onclick="event.stopPropagation();uploadLivestockPhoto(${l.id})" title="Change photo">📷</button>`}
@@ -113,6 +113,39 @@ function uploadLivestockPhoto(id) {
             showToast(err.message || 'Failed to upload photo', 'error');
         }
     };
+    input.click();
+}
+
+function editLivestockDate(id, currentDate) {
+    const input = document.createElement('input');
+    input.type = 'date';
+    input.value = currentDate || '';
+    input.style.position = 'fixed';
+    input.style.opacity = '0';
+    input.style.top = '0';
+    document.body.appendChild(input);
+    input.addEventListener('change', async () => {
+        if (input.value) {
+            try {
+                await api('/livestock/' + id, {
+                    method: 'PUT',
+                    body: { added_date: input.value }
+                });
+                showToast('Date updated!', 'success');
+                loadTankData();
+                if (typeof loadHomeLivestock === 'function') loadHomeLivestock();
+            } catch (err) {
+                showToast('Failed to update date', 'error');
+            }
+        }
+        document.body.removeChild(input);
+    });
+    input.addEventListener('blur', () => {
+        setTimeout(() => {
+            if (document.body.contains(input)) document.body.removeChild(input);
+        }, 300);
+    });
+    input.focus();
     input.click();
 }
 
