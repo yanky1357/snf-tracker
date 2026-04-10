@@ -381,6 +381,35 @@ def delete_account():
 
 ADMIN_KEY = os.environ.get('ADMIN_KEY', 'reef2026yanky')
 
+def _get_active_user_ids(conn, days):
+    """Get set of user_ids active in the last N days across all activity tables."""
+    active = set()
+    # Each table has a different timestamp column
+    activity_tables = [
+        ('parameter_logs', 'logged_at'),
+        ('chat_history', 'created_at'),
+        ('cost_entries', 'purchase_date'),
+    ]
+    for table, col in activity_tables:
+        if USE_POSTGRES:
+            rows = db_fetchall(conn, f"SELECT DISTINCT user_id FROM {table} WHERE {col} >= CURRENT_DATE - interval '{days} days'")
+        else:
+            rows = db_fetchall(conn, f"SELECT DISTINCT user_id FROM {table} WHERE {col} >= date('now', '-{days} days')")
+        for r in (rows or []):
+            active.add(r['user_id'])
+    # dosing_logs and daily_journal use DATE columns
+    for table, col in [('dosing_logs', 'logged_date'), ('daily_journal', 'log_date')]:
+        try:
+            if USE_POSTGRES:
+                rows = db_fetchall(conn, f"SELECT DISTINCT user_id FROM {table} WHERE {col} >= CURRENT_DATE - interval '{days} days'")
+            else:
+                rows = db_fetchall(conn, f"SELECT DISTINCT user_id FROM {table} WHERE {col} >= date('now', '-{days} days')")
+            for r in (rows or []):
+                active.add(r['user_id'])
+        except Exception:
+            pass
+    return active
+
 @app.route('/reef/api/admin/stats')
 def admin_stats():
     key = request.args.get('key', '')
@@ -393,18 +422,128 @@ def admin_stats():
         if USE_POSTGRES:
             today_users = db_fetchval(conn, "SELECT COUNT(*) FROM reef_users WHERE created_at >= CURRENT_DATE") or 0
             week_users = db_fetchval(conn, "SELECT COUNT(*) FROM reef_users WHERE created_at >= CURRENT_DATE - interval '7 days'") or 0
-            recent = db_fetchall(conn, "SELECT id, email, display_name, created_at, onboarded, tank_type, tank_size_gallons FROM reef_users ORDER BY created_at DESC LIMIT 30")
+            recent = db_fetchall(conn, "SELECT id, email, display_name, created_at, onboarded, tank_type, tank_size_gallons, experience_level FROM reef_users ORDER BY created_at DESC LIMIT 50")
         else:
             today_users = db_fetchval(conn, "SELECT COUNT(*) FROM reef_users WHERE created_at >= date('now')") or 0
             week_users = db_fetchval(conn, "SELECT COUNT(*) FROM reef_users WHERE created_at >= date('now', '-7 days')") or 0
-            recent = db_fetchall(conn, "SELECT id, email, display_name, created_at, onboarded, tank_type, tank_size_gallons FROM reef_users ORDER BY created_at DESC LIMIT 30")
+            recent = db_fetchall(conn, "SELECT id, email, display_name, created_at, onboarded, tank_type, tank_size_gallons, experience_level FROM reef_users ORDER BY created_at DESC LIMIT 50")
+
+        # DAU / WAU
+        active_1d = _get_active_user_ids(conn, 1)
+        active_7d = _get_active_user_ids(conn, 7)
+        active_30d = _get_active_user_ids(conn, 30)
+        dau = len(active_1d)
+        wau = len(active_7d)
+
+        # Retention buckets
+        retention = {
+            'active_7d': len(active_7d),
+            'active_30d': len(active_30d - active_7d),
+            'inactive': max(0, total_users - len(active_30d)),
+        }
+
+        # Average tank size
+        avg_tank = db_fetchval(conn, 'SELECT AVG(tank_size_gallons) FROM reef_users WHERE tank_size_gallons IS NOT NULL AND tank_size_gallons > 0')
+        avg_tank = round(avg_tank, 1) if avg_tank else 0
+
+        # Tank type breakdown
+        tank_types = db_fetchall(conn, "SELECT tank_type, COUNT(*) as cnt FROM reef_users WHERE tank_type IS NOT NULL AND tank_type != '' GROUP BY tank_type ORDER BY cnt DESC")
+        tank_type_breakdown = [{'type': t['tank_type'], 'count': t['cnt']} for t in (tank_types or [])]
+
+        # Feature adoption (% of users who used each feature)
+        adoption = {}
+        for table, label in [('parameter_logs', 'params'), ('chat_history', 'chat'),
+                             ('cost_entries', 'costs'), ('livestock', 'livestock')]:
+            cnt = db_fetchval(conn, f'SELECT COUNT(DISTINCT user_id) FROM {table}') or 0
+            adoption[label] = round(cnt / total_users * 100) if total_users > 0 else 0
+        for table, label in [('dosing_logs', 'dosing'), ('daily_journal', 'journal')]:
+            try:
+                cnt = db_fetchval(conn, f'SELECT COUNT(DISTINCT user_id) FROM {table}') or 0
+                adoption[label] = round(cnt / total_users * 100) if total_users > 0 else 0
+            except Exception:
+                adoption[label] = 0
+
+        # Growth chart (signups per day)
+        if USE_POSTGRES:
+            growth = db_fetchall(conn, "SELECT created_at::date as day, COUNT(*) as signups FROM reef_users GROUP BY created_at::date ORDER BY day")
+        else:
+            growth = db_fetchall(conn, "SELECT date(created_at) as day, COUNT(*) as signups FROM reef_users GROUP BY date(created_at) ORDER BY day")
+        growth_chart = [{'day': str(g['day']), 'signups': g['signups']} for g in (growth or [])]
+
+        # Popular livestock
+        pop_livestock = db_fetchall(conn, "SELECT common_name, COUNT(*) as cnt FROM livestock WHERE common_name IS NOT NULL AND common_name != '' GROUP BY common_name ORDER BY cnt DESC LIMIT 10")
+        popular_livestock = [{'name': p['common_name'], 'count': p['cnt']} for p in (pop_livestock or [])]
+
+        # Average spending
+        total_cost = db_fetchval(conn, 'SELECT SUM(amount) FROM cost_entries') or 0
+        total_recurring = db_fetchval(conn, 'SELECT SUM(monthly_amount) FROM recurring_costs') or 0
+        avg_spending = round((total_cost + total_recurring) / total_users, 2) if total_users > 0 else 0
+
+        # Enrich recent users with engagement data (batch queries)
+        user_ids = [u['id'] for u in (recent or [])]
+        user_engagement = {}
+        user_last_active = {}
+        user_livestock_count = {}
+
+        if user_ids:
+            placeholders = ','.join(['?'] * len(user_ids))
+            # Batch: livestock counts
+            ls_counts = db_fetchall(conn, f'SELECT user_id, COUNT(*) as cnt FROM livestock WHERE user_id IN ({placeholders}) GROUP BY user_id', user_ids)
+            for r in (ls_counts or []):
+                user_livestock_count[r['user_id']] = r['cnt']
+
+            # Batch: engagement scores and last active from activity tables
+            activity_tables = [
+                ('parameter_logs', 'logged_at', 3),
+                ('chat_history', 'created_at', 2),
+                ('cost_entries', 'purchase_date', 2),
+            ]
+            for table, col, weight in activity_tables:
+                rows = db_fetchall(conn, f'SELECT user_id, COUNT(*) as cnt, MAX({col}) as latest FROM {table} WHERE user_id IN ({placeholders}) GROUP BY user_id', user_ids)
+                for r in (rows or []):
+                    uid = r['user_id']
+                    user_engagement[uid] = user_engagement.get(uid, 0) + min(r['cnt'], 50) * weight
+                    latest = str(r.get('latest', ''))
+                    if latest and (uid not in user_last_active or latest > user_last_active[uid]):
+                        user_last_active[uid] = latest
+
+            for table, col, weight in [('dosing_logs', 'logged_date', 3), ('daily_journal', 'log_date', 5)]:
+                try:
+                    rows = db_fetchall(conn, f'SELECT user_id, COUNT(*) as cnt, MAX({col}) as latest FROM {table} WHERE user_id IN ({placeholders}) GROUP BY user_id', user_ids)
+                    for r in (rows or []):
+                        uid = r['user_id']
+                        user_engagement[uid] = user_engagement.get(uid, 0) + min(r['cnt'], 50) * weight
+                        latest = str(r.get('latest', ''))
+                        if latest and (uid not in user_last_active or latest > user_last_active[uid]):
+                            user_last_active[uid] = latest
+                except Exception:
+                    pass
+
+        recent_users = []
+        for u in (recent or []):
+            uid = u['id']
+            eng = min(100, user_engagement.get(uid, 0))
+            recent_users.append({
+                'id': uid, 'email': u['email'], 'name': u.get('display_name', ''),
+                'joined': str(u.get('created_at', '')), 'onboarded': bool(u.get('onboarded')),
+                'tank_type': u.get('tank_type', ''), 'tank_size': u.get('tank_size_gallons', ''),
+                'experience': u.get('experience_level', ''),
+                'last_active': user_last_active.get(uid, ''),
+                'livestock_count': user_livestock_count.get(uid, 0),
+                'engagement_score': eng,
+            })
+
         return jsonify({
             'total_users': total_users, 'onboarded_users': onboarded,
             'signups_today': today_users, 'signups_this_week': week_users,
-            'recent_users': [{'id': u['id'], 'email': u['email'], 'name': u.get('display_name',''),
-                'joined': str(u.get('created_at','')), 'onboarded': bool(u.get('onboarded')),
-                'tank_type': u.get('tank_type',''), 'tank_size': u.get('tank_size_gallons','')}
-                for u in (recent or [])]
+            'dau': dau, 'wau': wau,
+            'avg_tank_size': avg_tank, 'avg_spending': avg_spending,
+            'tank_type_breakdown': tank_type_breakdown,
+            'feature_adoption': adoption,
+            'retention': retention,
+            'growth_chart': growth_chart,
+            'popular_livestock': popular_livestock,
+            'recent_users': recent_users,
         })
     finally:
         conn.close()
@@ -452,6 +591,79 @@ def admin_user_activity(uid):
         livestock = db_fetchall(conn, 'SELECT category, common_name, species, quantity FROM livestock WHERE user_id = ?', [uid])
         equipment = db_fetchall(conn, 'SELECT category, brand, model FROM equipment WHERE user_id = ?', [uid])
 
+        # Health score
+        try:
+            health = calculate_health_score(conn, uid)
+        except Exception:
+            health = None
+
+        # Monthly cost total
+        if USE_POSTGRES:
+            month_purchases = db_fetchval(conn, "SELECT COALESCE(SUM(amount),0) FROM cost_entries WHERE user_id = ? AND purchase_date >= date_trunc('month', CURRENT_DATE)", [uid]) or 0
+        else:
+            month_purchases = db_fetchval(conn, "SELECT COALESCE(SUM(amount),0) FROM cost_entries WHERE user_id = ? AND purchase_date >= date('now', 'start of month')", [uid]) or 0
+        month_recurring = db_fetchval(conn, 'SELECT COALESCE(SUM(monthly_amount),0) FROM recurring_costs WHERE user_id = ?', [uid]) or 0
+
+        # Dosing presets
+        dosing_presets = []
+        try:
+            dosing_presets = db_fetchall(conn, 'SELECT name, preset_type, amount, frequency FROM dosing_presets WHERE user_id = ?', [uid])
+            dosing_presets = [dict(d) for d in (dosing_presets or [])]
+        except Exception:
+            pass
+
+        # Journal entries
+        journal = []
+        try:
+            journal = db_fetchall(conn, 'SELECT log_date, notes FROM daily_journal WHERE user_id = ? ORDER BY log_date DESC LIMIT 10', [uid])
+            journal = [dict(j) for j in (journal or [])]
+        except Exception:
+            pass
+
+        # Retention: days active (distinct days with any activity)
+        active_days = set()
+        for table, col in [('parameter_logs', 'logged_at'), ('chat_history', 'created_at'), ('cost_entries', 'purchase_date')]:
+            if USE_POSTGRES:
+                rows = db_fetchall(conn, f"SELECT DISTINCT {col}::date as d FROM {table} WHERE user_id = ?", [uid])
+            else:
+                rows = db_fetchall(conn, f"SELECT DISTINCT date({col}) as d FROM {table} WHERE user_id = ?", [uid])
+            for r in (rows or []):
+                if r.get('d'):
+                    active_days.add(str(r['d']))
+        for table, col in [('dosing_logs', 'logged_date'), ('daily_journal', 'log_date')]:
+            try:
+                rows = db_fetchall(conn, f"SELECT DISTINCT {col} as d FROM {table} WHERE user_id = ?", [uid])
+                for r in (rows or []):
+                    if r.get('d'):
+                        active_days.add(str(r['d']))
+            except Exception:
+                pass
+
+        joined_str = str(user.get('created_at', ''))
+        days_since = 0
+        last_active_str = ''
+        try:
+            joined_dt = datetime.fromisoformat(joined_str.replace('Z', '+00:00')).replace(tzinfo=None)
+            days_since = (datetime.now() - joined_dt).days
+        except Exception:
+            pass
+        if active_days:
+            last_active_str = max(active_days)
+
+        # Feature usage counts
+        feature_usage = {
+            'parameters': len(params or []),
+            'chat': len(chats or []),
+            'livestock': len(livestock or []),
+            'equipment': len(equipment or []),
+            'costs': len(purchases or []),
+            'recurring_costs': len(recurring or []),
+            'calendar_tasks': len(cal_tasks or []),
+            'maintenance_tasks': len(maint_tasks or []),
+            'dosing_presets': len(dosing_presets),
+            'journal_entries': len(journal),
+        }
+
         return jsonify({
             'user': {
                 'id': user['id'], 'email': user['email'], 'name': user.get('display_name', ''),
@@ -459,6 +671,18 @@ def admin_user_activity(uid):
                 'tank_size': user.get('tank_size_gallons'), 'tank_type': user.get('tank_type'),
                 'salt_brand': user.get('salt_brand'), 'experience': user.get('experience_level'),
                 'fish_count': user.get('fish_count'), 'dosing': user.get('dosing'),
+            },
+            'retention': {
+                'days_since_signup': days_since,
+                'days_active': len(active_days),
+                'last_active': last_active_str,
+            },
+            'feature_usage': feature_usage,
+            'health_score': health,
+            'monthly_cost': {
+                'total': round(month_purchases + month_recurring, 2),
+                'recurring': round(month_recurring, 2),
+                'purchases': round(month_purchases, 2),
             },
             'param_logs': [dict(p) for p in (params or [])],
             'chat_history': [dict(c) for c in (chats or [])],
@@ -468,7 +692,32 @@ def admin_user_activity(uid):
             'purchases': [dict(p) for p in (purchases or [])],
             'livestock': [dict(l) for l in (livestock or [])],
             'equipment': [dict(e) for e in (equipment or [])],
+            'dosing_presets': dosing_presets,
+            'journal_entries': journal,
         })
+    finally:
+        conn.close()
+
+@app.route('/reef/api/admin/export')
+def admin_export_csv():
+    key = request.args.get('key', '')
+    if key != ADMIN_KEY:
+        return jsonify({'error': 'Unauthorized'}), 401
+    import csv, io
+    conn = get_db()
+    try:
+        users = db_fetchall(conn, 'SELECT id, email, display_name, created_at, onboarded, tank_type, tank_size_gallons, experience_level, salt_brand FROM reef_users ORDER BY created_at DESC')
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['ID', 'Email', 'Name', 'Joined', 'Onboarded', 'Tank Type', 'Tank Size (gal)', 'Experience', 'Salt Brand'])
+        for u in (users or []):
+            writer.writerow([u['id'], u['email'], u.get('display_name', ''), str(u.get('created_at', '')),
+                            'Yes' if u.get('onboarded') else 'No', u.get('tank_type', ''),
+                            u.get('tank_size_gallons', ''), u.get('experience_level', ''), u.get('salt_brand', '')])
+        from flask import Response
+        today = datetime.now().strftime('%Y-%m-%d')
+        return Response(output.getvalue(), mimetype='text/csv',
+                       headers={'Content-Disposition': f'attachment; filename=reefpilot_users_{today}.csv'})
     finally:
         conn.close()
 
