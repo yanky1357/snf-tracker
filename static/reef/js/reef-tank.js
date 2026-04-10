@@ -207,6 +207,7 @@ async function deleteLivestock(id) {
         await api('/livestock/' + id, { method: 'DELETE' });
         showToast('Removed', 'success');
         loadTankData();
+        if (typeof loadHomeLivestock === 'function') loadHomeLivestock();
     } catch (err) {
         showToast(err.message, 'error');
     }

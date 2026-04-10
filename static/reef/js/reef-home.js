@@ -637,28 +637,22 @@ async function loadHomeLivestock() {
                     : Math.floor(l.days_owned / 365) + '+ years')
                 : '';
 
-            if (l.photo_url) {
-                return `<div class="ls-card" onclick="uploadLivestockPhoto(${l.id})">
-                    <div class="ls-photo" style="background-image:url('${l.photo_url}')"></div>
-                    <div class="ls-info">
-                        <div class="ls-name">${name}${l.quantity > 1 ? ' <span style="color:var(--accent)">x' + l.quantity + '</span>' : ''}</div>
-                        <div class="ls-species">${l.category}${l.species ? ' · ' + l.species : ''}</div>
-                        ${daysText ? '<div class="ls-age">' + daysText + '</div>' : ''}
-                    </div>
-                </div>`;
-            } else {
-                return `<div class="ls-card" onclick="uploadLivestockPhoto(${l.id})" style="cursor:pointer">
-                    <div class="ls-photo-placeholder">
-                        <span style="font-size:22px">${emoji}</span>
-                        <span style="font-size:9px;color:var(--text-secondary)">+ photo</span>
-                    </div>
-                    <div class="ls-info">
-                        <div class="ls-name">${name}${l.quantity > 1 ? ' <span style="color:var(--accent)">x' + l.quantity + '</span>' : ''}</div>
-                        <div class="ls-species">${l.category}${l.species ? ' · ' + l.species : ''}</div>
-                        ${daysText ? '<div class="ls-age">' + daysText + '</div>' : ''}
-                    </div>
-                </div>`;
-            }
+            const photoHtml = l.photo_url
+                ? `<div class="ls-photo" style="background-image:url('${l.photo_url}')" onclick="event.stopPropagation();uploadLivestockPhoto(${l.id})"></div>`
+                : `<div class="ls-photo-placeholder" onclick="event.stopPropagation();uploadLivestockPhoto(${l.id})">
+                    <span style="font-size:22px">${emoji}</span>
+                    <span style="font-size:9px;color:var(--text-secondary)">+ photo</span>
+                  </div>`;
+
+            return `<div class="ls-card">
+                ${photoHtml}
+                <div class="ls-info">
+                    <div class="ls-name">${name}${l.quantity > 1 ? ' <span style="color:var(--accent)">x' + l.quantity + '</span>' : ''}</div>
+                    <div class="ls-species">${l.category}${l.species ? ' · ' + l.species : ''}</div>
+                    ${daysText ? `<div class="ls-age" onclick="event.stopPropagation();editLivestockDate(${l.id}, '${l.added_date || ''}')" style="cursor:pointer">${daysText} ✏️</div>` : `<div class="ls-age" onclick="event.stopPropagation();editLivestockDate(${l.id}, '')" style="cursor:pointer;opacity:0.5">+ set date</div>`}
+                </div>
+                <button class="item-delete" onclick="event.stopPropagation();deleteLivestock(${l.id})" style="flex-shrink:0">&times;</button>
+            </div>`;
         }).join('');
     } catch (e) {}
 }

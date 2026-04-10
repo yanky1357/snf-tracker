@@ -2827,7 +2827,10 @@ def upload_livestock_photo(lid):
         # Compress image to JPEG to reduce size
         try:
             from PIL import Image
+            from PIL import ImageOps
             img = Image.open(BytesIO(raw))
+            # Fix EXIF orientation (phones store rotation as metadata)
+            img = ImageOps.exif_transpose(img)
             img = img.convert('RGB')
             # Resize if too large (max 800px on longest side)
             max_dim = 800
