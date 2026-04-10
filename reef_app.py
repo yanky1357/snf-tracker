@@ -2742,7 +2742,25 @@ def get_livestock():
     conn = get_db()
     try:
         rows = db_fetchall(conn, 'SELECT * FROM livestock WHERE user_id = ? ORDER BY added_date DESC', [uid])
-        return jsonify({'livestock': rows})
+        result = []
+        for r in (rows or []):
+            photo = r.get('photo')
+            days_owned = None
+            if r.get('added_date'):
+                try:
+                    added = date.fromisoformat(str(r['added_date'])[:10])
+                    days_owned = (date.today() - added).days
+                except Exception:
+                    pass
+            result.append({
+                'id': r['id'], 'category': r.get('category'),
+                'species': r.get('species'), 'common_name': r.get('common_name'),
+                'nickname': r.get('nickname'), 'quantity': r.get('quantity', 1),
+                'notes': r.get('notes'), 'added_date': str(r.get('added_date', ''))[:10],
+                'days_owned': days_owned,
+                'photo_url': f'/reef/api/livestock/{r["id"]}/photo' if photo else None,
+            })
+        return jsonify({'livestock': result})
     finally:
         conn.close()
 
@@ -2752,11 +2770,12 @@ def get_livestock():
 def add_livestock():
     data = request.json or {}
     uid = session['reef_user_id']
+    added_date = data.get('added_date', date.today().isoformat())
     conn = get_db()
     try:
         db_execute(conn, '''
-            INSERT INTO livestock (user_id, category, species, common_name, nickname, quantity, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO livestock (user_id, category, species, common_name, nickname, quantity, notes, added_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''', [
             uid,
             data.get('category', 'fish'),
@@ -2765,9 +2784,54 @@ def add_livestock():
             data.get('nickname', ''),
             data.get('quantity', 1),
             data.get('notes', ''),
+            added_date,
         ])
         conn.commit()
         return jsonify({'ok': True}), 201
+    finally:
+        conn.close()
+
+
+@app.route('/reef/api/livestock/<int:lid>/photo', methods=['POST'])
+@require_auth
+def upload_livestock_photo(lid):
+    uid = session['reef_user_id']
+    if 'photo' not in request.files:
+        return jsonify({'error': 'No photo'}), 400
+    f = request.files['photo']
+    if not f.filename:
+        return jsonify({'error': 'Empty file'}), 400
+    ext = f.filename.rsplit('.', 1)[-1].lower() if '.' in f.filename else 'jpg'
+    if ext not in ('jpg', 'jpeg', 'png', 'webp'):
+        return jsonify({'error': 'Invalid file type'}), 400
+    filename = f'livestock_{uid}_{lid}_{uuid.uuid4().hex[:8]}.{ext}'
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    f.save(os.path.join(UPLOAD_DIR, filename))
+    conn = get_db()
+    try:
+        # Remove old photo file
+        old = db_fetchval(conn, 'SELECT photo FROM livestock WHERE id = ? AND user_id = ?', [lid, uid])
+        if old:
+            old_path = os.path.join(UPLOAD_DIR, old)
+            if os.path.exists(old_path):
+                os.remove(old_path)
+        db_execute(conn, 'UPDATE livestock SET photo = ? WHERE id = ? AND user_id = ?', [filename, lid, uid])
+        conn.commit()
+        return jsonify({'ok': True, 'photo_url': f'/reef/api/livestock/{lid}/photo'})
+    finally:
+        conn.close()
+
+
+@app.route('/reef/api/livestock/<int:lid>/photo', methods=['GET'])
+@require_auth
+def get_livestock_photo(lid):
+    uid = session['reef_user_id']
+    conn = get_db()
+    try:
+        photo = db_fetchval(conn, 'SELECT photo FROM livestock WHERE id = ? AND user_id = ?', [lid, uid])
+        if not photo:
+            return jsonify({'error': 'No photo'}), 404
+        return send_from_directory(UPLOAD_DIR, photo)
     finally:
         conn.close()
 
@@ -2778,6 +2842,12 @@ def delete_livestock(lid):
     uid = session['reef_user_id']
     conn = get_db()
     try:
+        # Delete photo file
+        photo = db_fetchval(conn, 'SELECT photo FROM livestock WHERE id = ? AND user_id = ?', [lid, uid])
+        if photo:
+            photo_path = os.path.join(UPLOAD_DIR, photo)
+            if os.path.exists(photo_path):
+                os.remove(photo_path)
         db_execute(conn, 'DELETE FROM livestock WHERE id = ? AND user_id = ?', [lid, uid])
         conn.commit()
         return jsonify({'ok': True})

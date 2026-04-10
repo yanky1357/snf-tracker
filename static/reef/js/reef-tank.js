@@ -54,31 +54,61 @@ function renderTankProfile(profile, brands, types) {
 function renderLivestock(livestock) {
     const list = document.getElementById('livestock-list');
     if (!livestock || livestock.length === 0) {
-        list.innerHTML = '<div class="empty-state">No livestock added yet</div>';
+        list.innerHTML = '<div class="empty-state">No livestock added yet. Add your fish, corals, and inverts!</div>';
         return;
     }
 
-    const categoryIcons = {
-        fish: 'F',
-        coral: 'C',
-        invertebrate: 'I',
-        anemone: 'A',
-    };
+    const categoryEmoji = { fish: '🐟', coral: '🪸', invertebrate: '🦐', anemone: '🌊' };
 
-    list.innerHTML = livestock.map(l => `
-        <div class="item-card">
-            <div class="item-info">
-                <div class="item-name">
-                    ${l.nickname || l.common_name || l.species || 'Unknown'}
-                    ${l.quantity > 1 ? ' x' + l.quantity : ''}
-                </div>
-                <div class="item-detail">
-                    ${l.category} ${l.species ? '- ' + l.species : ''}
-                </div>
+    list.innerHTML = livestock.map(l => {
+        const name = l.nickname || l.common_name || l.species || 'Unknown';
+        const emoji = categoryEmoji[l.category] || '🐠';
+        const daysText = l.days_owned !== null && l.days_owned !== undefined
+            ? (l.days_owned === 0 ? 'Added today' : l.days_owned === 1 ? '1 day' : l.days_owned < 30 ? l.days_owned + ' days' : Math.floor(l.days_owned / 30) + ' months')
+            : '';
+        const photoHtml = l.photo_url
+            ? `<div class="ls-photo" style="background-image:url('${l.photo_url}')" onclick="event.stopPropagation()"></div>`
+            : `<div class="ls-photo-placeholder" onclick="event.stopPropagation();uploadLivestockPhoto(${l.id})">
+                <span style="font-size:20px">${emoji}</span>
+                <span style="font-size:9px;color:var(--text-secondary)">+ photo</span>
+               </div>`;
+        return `<div class="ls-card">
+            ${photoHtml}
+            <div class="ls-info">
+                <div class="ls-name">${name}${l.quantity > 1 ? ' <span style="color:var(--accent)">x' + l.quantity + '</span>' : ''}</div>
+                <div class="ls-species">${l.category}${l.species ? ' · ' + l.species : ''}</div>
+                ${daysText ? `<div class="ls-age">${daysText}</div>` : ''}
             </div>
-            <button class="item-delete" onclick="deleteLivestock(${l.id})">&times;</button>
-        </div>
-    `).join('');
+            <div class="ls-actions">
+                ${!l.photo_url ? '' : `<button class="ls-photo-btn" onclick="event.stopPropagation();uploadLivestockPhoto(${l.id})" title="Change photo">📷</button>`}
+                <button class="item-delete" onclick="event.stopPropagation();deleteLivestock(${l.id})">&times;</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function uploadLivestockPhoto(id) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async () => {
+        const file = input.files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('photo', file);
+        try {
+            const resp = await fetch('/reef/api/livestock/' + id + '/photo', {
+                method: 'POST',
+                body: formData,
+            });
+            if (!resp.ok) throw new Error('Upload failed');
+            showToast('Photo uploaded!', 'success');
+            loadTankData();
+        } catch (err) {
+            showToast('Failed to upload photo', 'error');
+        }
+    };
+    input.click();
 }
 
 function renderEquipment(equipment) {
@@ -116,6 +146,7 @@ async function handleAddLivestock(e) {
                 species: document.getElementById('ls-species').value,
                 nickname: document.getElementById('ls-nickname').value,
                 quantity: parseInt(document.getElementById('ls-quantity').value) || 1,
+                added_date: document.getElementById('ls-date-added').value || new Date().toISOString().split('T')[0],
             },
         });
         closeModal('add-livestock-modal');
@@ -126,6 +157,7 @@ async function handleAddLivestock(e) {
         document.getElementById('ls-species').value = '';
         document.getElementById('ls-nickname').value = '';
         document.getElementById('ls-quantity').value = '1';
+        document.getElementById('ls-date-added').value = '';
     } catch (err) {
         showToast(err.message, 'error');
     }

@@ -267,7 +267,11 @@ def init_db():
                     ALTER TABLE reef_users ADD COLUMN tank_photo TEXT
                 ''')
             except Exception:
-                pass  # Column already exists
+                pass
+            try:
+                conn.cursor().execute('ALTER TABLE livestock ADD COLUMN photo TEXT')
+            except Exception:
+                pass
             # Dosing/Food Presets & Daily Journal
             try:
                 conn.cursor().execute('''
@@ -485,7 +489,11 @@ def init_db():
             try:
                 conn.execute('ALTER TABLE reef_users ADD COLUMN tank_photo TEXT')
             except Exception:
-                pass  # Column already exists
+                pass
+            try:
+                conn.execute('ALTER TABLE livestock ADD COLUMN photo TEXT')
+            except Exception:
+                pass
             conn.executescript('''
                 CREATE TABLE IF NOT EXISTS dosing_presets (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
