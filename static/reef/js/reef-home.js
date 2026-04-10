@@ -374,11 +374,11 @@ function renderCostSummary(summary) {
             amountEl.innerHTML = '<div style="font-size:14px;color:var(--accent)">Start tracking your costs</div><div style="font-size:11px;color:var(--text-secondary);margin-top:4px">Let AI estimate your monthly expenses</div>';
             card.onclick = function() { switchTab('costs'); setTimeout(function() { if (typeof startCostWizard === 'function') startCostWizard(); }, 300); };
         } else {
-            amountEl.textContent = '$' + grandTotal.toFixed(2);
+            amountEl.textContent = formatCurrency(grandTotal);
         }
     }).catch(() => {
         const total = (summary && summary.month_total !== undefined) ? summary.month_total : 0;
-        amountEl.textContent = '$' + total.toFixed(2);
+        amountEl.textContent = formatCurrency(total);
     });
 }
 
@@ -416,7 +416,7 @@ async function renderRecentActivity() {
         costs.slice(0, 5).forEach(c => {
             activities.push({
                 icon: '\uD83D\uDCB0',
-                text: `${c.description} — $${parseFloat(c.amount).toFixed(2)}`,
+                text: `${c.description} — ${formatCurrency(c.amount)}`,
                 time: c.purchase_date,
                 type: 'purchase'
             });

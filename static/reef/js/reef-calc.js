@@ -55,7 +55,7 @@ function calcSaltMix() {
         <div class="calc-result-big">${Math.round(totalGrams)} grams</div>
         <div class="calc-result-detail">
             ~${cups.toFixed(1)} cups of ${brand.name}<br>
-            for ${volumeGal} gallons at ${targetSG} SG<br>
+            for ${formatVolume(volumeGal)} at ${targetSG} SG<br>
             (${gramsPerLiter.toFixed(1)} g/L)
         </div>
     `;
@@ -82,10 +82,9 @@ function calcWaterChange() {
     const resultEl = document.getElementById('wc-result');
     resultEl.classList.remove('hidden');
     resultEl.innerHTML = `
-        <div class="calc-result-big">${changeVol.toFixed(1)} gallons</div>
+        <div class="calc-result-big">${formatVolume(changeVol)}</div>
         <div class="calc-result-detail">
-            ${liters.toFixed(1)} liters<br>
-            ${percent}% of ${totalVol} gallon system
+            ${percent}% of ${formatVolume(totalVol)} system
         </div>
     `;
 }
@@ -135,7 +134,7 @@ function calcDosing() {
             Soda Ash (Alk Part): ${alkDoseML.toFixed(1)} ml<br>
             Calcium Chloride (Ca Part): ${caDoseML.toFixed(1)} ml<br>
             <br>
-            Raises Alk by ${alkDiff.toFixed(1)} dKH in ${volume} gallons<br>
+            Raises Alk by ${alkDiff.toFixed(1)} dKH in ${formatVolume(volume)}<br>
             <small>Based on BRS standard 2-part concentration. Dose slowly over 24h. Do not dose both parts at the same time.</small>
         </div>
     `;

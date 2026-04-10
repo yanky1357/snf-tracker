@@ -50,10 +50,10 @@ async function renderCostDashboard() {
         const purchaseTotal = thisMonthPurchases.reduce((sum, c) => sum + parseFloat(c.amount), 0);
         const grandTotal = recurringTotal + purchaseTotal;
 
-        document.getElementById('cost-total-amount').textContent = '$' + grandTotal.toFixed(2);
+        document.getElementById('cost-total-amount').textContent = formatCurrency(grandTotal);
         const subEl = document.getElementById('cost-total-sub');
         if (purchaseTotal > 0) {
-            subEl.textContent = `$${recurringTotal.toFixed(2)} recurring + $${purchaseTotal.toFixed(2)} purchases`;
+            subEl.textContent = `${formatCurrency(recurringTotal)} recurring + ${formatCurrency(purchaseTotal)} purchases`;
         } else {
             subEl.textContent = 'recurring costs only';
         }
@@ -74,7 +74,7 @@ async function renderCostDashboard() {
                     <div class="cost-line-desc">${r.description || ''}</div>
                 </div>
                 <div class="cost-line-right">
-                    <div class="cost-line-amount">$${r.monthly_amount.toFixed(2)}</div>
+                    <div class="cost-line-amount">${formatCurrency(r.monthly_amount)}</div>
                     <span class="cost-badge cost-badge-${r.source === 'manual' ? 'actual' : 'estimated'}">${r.source === 'manual' ? 'Actual' : 'Estimated'}</span>
                 </div>
                 <button class="cost-line-edit" onclick="editRecurringCost(${r.id}, ${r.monthly_amount})" title="Edit">
@@ -85,7 +85,7 @@ async function renderCostDashboard() {
 
         // Also update home dashboard cost summary
         const homeAmount = document.getElementById('cost-summary-amount');
-        if (homeAmount) homeAmount.textContent = '$' + grandTotal.toFixed(2);
+        if (homeAmount) homeAmount.textContent = formatCurrency(grandTotal);
     } catch {
         document.getElementById('cost-line-items').innerHTML = '<div class="empty-state">Could not load costs</div>';
     }
@@ -245,7 +245,7 @@ async function loadPurchasesList() {
         summaryEl.innerHTML = `
             <div class="purchases-month-total">
                 <span>Spent this month</span>
-                <span>$${monthTotal.toFixed(2)}</span>
+                <span>${formatCurrency(monthTotal)}</span>
             </div>
         `;
 
@@ -264,7 +264,7 @@ async function loadPurchasesList() {
                         <div class="purchase-desc">${c.description || c.category}</div>
                         <div class="purchase-meta">${c.category} · ${dateStr}</div>
                     </div>
-                    <div class="purchase-amount">$${parseFloat(c.amount).toFixed(2)}</div>
+                    <div class="purchase-amount">${formatCurrency(c.amount)}</div>
                     <button class="purchase-delete" onclick="deleteAndRefreshPurchase(${c.id})" title="Remove">&times;</button>
                 </div>
             `;
@@ -301,16 +301,16 @@ async function updateCostTotals() {
         const purchaseTotal = thisMonthPurchases.reduce((sum, c) => sum + parseFloat(c.amount), 0);
         const grandTotal = recurringTotal + purchaseTotal;
 
-        document.getElementById('cost-total-amount').textContent = '$' + grandTotal.toFixed(2);
+        document.getElementById('cost-total-amount').textContent = formatCurrency(grandTotal);
         const subEl = document.getElementById('cost-total-sub');
         if (purchaseTotal > 0) {
-            subEl.textContent = `$${recurringTotal.toFixed(2)} recurring + $${purchaseTotal.toFixed(2)} purchases`;
+            subEl.textContent = `${formatCurrency(recurringTotal)} recurring + ${formatCurrency(purchaseTotal)} purchases`;
         } else {
             subEl.textContent = 'recurring costs only';
         }
 
         const homeAmount = document.getElementById('cost-summary-amount');
-        if (homeAmount) homeAmount.textContent = '$' + grandTotal.toFixed(2);
+        if (homeAmount) homeAmount.textContent = formatCurrency(grandTotal);
     } catch {}
 }
 

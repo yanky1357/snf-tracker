@@ -62,6 +62,51 @@ function compressImage(file, maxDim = 1200, quality = 0.7) {
     });
 }
 
+// ── User Preferences (units/currency) ───────────────────────────────────
+
+var userPrefs = { units_volume: 'gallons', currency: 'USD' };
+
+function loadPreferences() {
+    if (window.currentUserProfile) {
+        userPrefs.units_volume = window.currentUserProfile.units_volume || 'gallons';
+        userPrefs.currency = window.currentUserProfile.currency || 'USD';
+    }
+    var volEl = document.getElementById('pref-volume');
+    var curEl = document.getElementById('pref-currency');
+    if (volEl) volEl.value = userPrefs.units_volume;
+    if (curEl) curEl.value = userPrefs.currency;
+}
+
+async function savePreferences() {
+    var vol = document.getElementById('pref-volume').value;
+    var cur = document.getElementById('pref-currency').value;
+    userPrefs.units_volume = vol;
+    userPrefs.currency = cur;
+    try {
+        await api('/preferences', { method: 'PUT', body: { units_volume: vol, currency: cur } });
+        showToast('Preferences saved', 'success');
+        // Refresh displays
+        if (typeof loadDashboard === 'function') loadDashboard();
+        if (typeof loadTankData === 'function') loadTankData();
+    } catch (e) {}
+}
+
+function formatVolume(gallons) {
+    if (!gallons && gallons !== 0) return '—';
+    if (userPrefs.units_volume === 'litres') {
+        return Math.round(gallons * 3.785) + 'L';
+    }
+    return gallons + 'g';
+}
+
+function currencySymbol() {
+    return { USD: '$', GBP: '£', EUR: '€' }[userPrefs.currency] || '$';
+}
+
+function formatCurrency(amount) {
+    return currencySymbol() + (parseFloat(amount) || 0).toFixed(2);
+}
+
 // ── Toast ────────────────────────────────────────────────────────────────
 
 function showToast(message, type = '') {
@@ -173,6 +218,7 @@ function enterApp() {
     document.getElementById('header-user').textContent = currentUser.display_name || '';
     document.getElementById('settings-email').textContent = currentUser.email || '';
     window.currentUserProfile = currentUser;
+    loadPreferences();
 
     // Load initial data
     loadChatHistory();

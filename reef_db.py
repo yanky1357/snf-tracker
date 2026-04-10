@@ -270,6 +270,17 @@ def init_db():
                 conn.commit()
             except Exception:
                 conn.rollback()
+            # User preferences (units/currency)
+            try:
+                conn.cursor().execute("ALTER TABLE reef_users ADD COLUMN IF NOT EXISTS units_volume VARCHAR(10) DEFAULT 'gallons'")
+                conn.commit()
+            except Exception:
+                conn.rollback()
+            try:
+                conn.cursor().execute("ALTER TABLE reef_users ADD COLUMN IF NOT EXISTS currency VARCHAR(5) DEFAULT 'USD'")
+                conn.commit()
+            except Exception:
+                conn.rollback()
             # Dosing/Food Presets & Daily Journal
             try:
                 conn.cursor().execute('''
@@ -490,6 +501,14 @@ def init_db():
                 pass
             try:
                 conn.execute('ALTER TABLE livestock ADD COLUMN photo TEXT')
+            except Exception:
+                pass
+            try:
+                conn.execute("ALTER TABLE reef_users ADD COLUMN units_volume TEXT DEFAULT 'gallons'")
+            except Exception:
+                pass
+            try:
+                conn.execute("ALTER TABLE reef_users ADD COLUMN currency TEXT DEFAULT 'USD'")
             except Exception:
                 pass
             conn.executescript('''

@@ -1484,6 +1484,26 @@ if (!localStorage.getItem('sw-clean-v11') && 'serviceWorker' in navigator) {
                         <span>Logged in as</span>
                         <span id="settings-email" class="settings-value"></span>
                     </div>
+
+                    <div class="settings-divider"></div>
+                    <div class="settings-section-title">Units &amp; Currency</div>
+                    <div class="settings-item">
+                        <span>Volume</span>
+                        <select id="pref-volume" class="settings-select" onchange="savePreferences()">
+                            <option value="gallons">Gallons</option>
+                            <option value="litres">Litres</option>
+                        </select>
+                    </div>
+                    <div class="settings-item">
+                        <span>Currency</span>
+                        <select id="pref-currency" class="settings-select" onchange="savePreferences()">
+                            <option value="USD">$ USD</option>
+                            <option value="GBP">£ GBP</option>
+                            <option value="EUR">€ EUR</option>
+                        </select>
+                    </div>
+
+                    <div class="settings-divider"></div>
                     <button class="btn btn-full btn-outline" onclick="clearChatHistory()">Clear Chat History</button>
                     <button class="btn btn-full btn-danger" onclick="handleLogout()">Sign Out</button>
 
@@ -1653,15 +1673,15 @@ if (!localStorage.getItem('sw-clean-v11') && 'serviceWorker' in navigator) {
 <!-- Toast Container -->
 <div id="toast-container"></div>
 
-<script src="/static/reef/js/reef-app.js?v=13"></script>
+<script src="/static/reef/js/reef-app.js?v=14"></script>
 <script src="/static/reef/js/reef-chat.js?v=8"></script>
 <script src="/static/reef/js/reef-params.js?v=8"></script>
-<script src="/static/reef/js/reef-calc.js?v=8"></script>
-<script src="/static/reef/js/reef-tank.js?v=12"></script>
-<script src="/static/reef/js/reef-home.js?v=13"></script>
+<script src="/static/reef/js/reef-calc.js?v=9"></script>
+<script src="/static/reef/js/reef-tank.js?v=13"></script>
+<script src="/static/reef/js/reef-home.js?v=14"></script>
 <script src="/static/reef/js/reef-more.js?v=10"></script>
 <script src="/static/reef/js/reef-calendar.js?v=8"></script>
-<script src="/static/reef/js/reef-costs.js?v=10"></script>
+<script src="/static/reef/js/reef-costs.js?v=11"></script>
 <script>
 // Suppress all native browser validation popups (iOS WebKit quirk)
 document.addEventListener('invalid', function(e) { e.preventDefault(); }, true);

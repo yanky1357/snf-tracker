@@ -34,7 +34,7 @@ function renderTankProfile(profile, brands, types) {
         </div>
         <div class="tank-stat">
             <span class="tank-stat-label">Tank Size</span>
-            <span class="tank-stat-value">${profile.tank_size_gallons ? profile.tank_size_gallons + ' gal' : 'Not set'}</span>
+            <span class="tank-stat-value">${profile.tank_size_gallons ? formatVolume(profile.tank_size_gallons) : 'Not set'}</span>
         </div>
         <div class="tank-stat">
             <span class="tank-stat-label">Tank Type</span>
@@ -46,7 +46,7 @@ function renderTankProfile(profile, brands, types) {
         </div>
         <div class="tank-stat">
             <span class="tank-stat-label">Sump Size</span>
-            <span class="tank-stat-value">${profile.sump_size_gallons ? profile.sump_size_gallons + ' gal' : 'None'}</span>
+            <span class="tank-stat-value">${profile.sump_size_gallons ? formatVolume(profile.sump_size_gallons) : 'None'}</span>
         </div>
     `;
 }

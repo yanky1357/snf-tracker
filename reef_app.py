@@ -330,6 +330,8 @@ def login():
             'salt_brand': user['salt_brand'],
             'sump_size_gallons': user['sump_size_gallons'],
             'onboarded': user['onboarded'],
+            'units_volume': user.get('units_volume', 'gallons'),
+            'currency': user.get('currency', 'USD'),
         })
     finally:
         conn.close()
@@ -339,6 +341,32 @@ def login():
 def logout():
     session.pop('reef_user_id', None)
     return jsonify({'ok': True})
+
+
+@app.route('/reef/api/preferences', methods=['GET', 'PUT'])
+@require_auth
+def user_preferences():
+    uid = session['reef_user_id']
+    conn = get_db()
+    try:
+        if request.method == 'GET':
+            user = db_fetchone(conn, 'SELECT units_volume, currency FROM reef_users WHERE id = ?', [uid])
+            return jsonify({
+                'units_volume': (user or {}).get('units_volume', 'gallons'),
+                'currency': (user or {}).get('currency', 'USD'),
+            })
+        else:
+            data = request.json or {}
+            units = data.get('units_volume')
+            currency = data.get('currency')
+            if units and units in ('gallons', 'litres'):
+                db_execute(conn, 'UPDATE reef_users SET units_volume = ? WHERE id = ?', [units, uid])
+            if currency and currency in ('USD', 'GBP', 'EUR'):
+                db_execute(conn, 'UPDATE reef_users SET currency = ? WHERE id = ?', [currency, uid])
+            conn.commit()
+            return jsonify({'ok': True})
+    finally:
+        conn.close()
 
 
 @app.route('/reef/api/auth/delete-account', methods=['DELETE'])
