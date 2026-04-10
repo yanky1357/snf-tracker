@@ -28,6 +28,7 @@ from reef_ai import (build_system_prompt, extract_params_from_response, clean_re
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.environ.get('SECRET_KEY', 'reefpilot-dev-key-change-in-prod')
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB max upload
 
 # Custom JSON encoder to handle Postgres date/datetime objects
 from flask.json.provider import DefaultJSONProvider
@@ -1201,30 +1202,44 @@ def upload_tank_photo():
     file = request.files['photo']
     if not file.filename:
         return jsonify({'error': 'No file selected'}), 400
-    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
-    if ext not in ALLOWED_EXTENSIONS:
-        return jsonify({'error': 'Only JPG, PNG, and WebP images allowed'}), 400
-    filename = f'{uid}_{uuid.uuid4().hex[:8]}.{ext}'
-    filepath = os.path.join(UPLOAD_DIR, filename)
-    # Remove old photo if exists
+
+    import base64
+    raw = file.read()
+    if len(raw) > 5 * 1024 * 1024:
+        return jsonify({'error': 'Photo too large (max 5MB)'}), 400
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+    mime = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'webp': 'image/webp'}.get(ext, 'image/jpeg')
+    b64 = f'data:{mime};base64,' + base64.b64encode(raw).decode('utf-8')
+
     conn = get_db()
     try:
-        old = db_fetchval(conn, 'SELECT tank_photo FROM reef_users WHERE id = ?', [uid])
-        if old:
-            old_path = os.path.join(UPLOAD_DIR, old)
-            if os.path.exists(old_path):
-                os.remove(old_path)
-        file.save(filepath)
-        db_execute(conn, 'UPDATE reef_users SET tank_photo = ? WHERE id = ?', [filename, uid])
+        db_execute(conn, 'UPDATE reef_users SET tank_photo = ? WHERE id = ?', [b64, uid])
         conn.commit()
     finally:
         conn.close()
-    return jsonify({'tank_photo_url': f'/reef/api/tank-photo/{filename}'})
+    return jsonify({'tank_photo_url': f'/reef/api/tank-photo/current'})
 
 
 @app.route('/reef/api/tank-photo/<filename>')
+@require_auth
 def serve_tank_photo(filename):
-    return send_file(os.path.join(UPLOAD_DIR, secure_filename(filename)))
+    uid = session['reef_user_id']
+    conn = get_db()
+    try:
+        photo = db_fetchval(conn, 'SELECT tank_photo FROM reef_users WHERE id = ?', [uid])
+        if not photo:
+            return jsonify({'error': 'No photo'}), 404
+        if photo.startswith('data:'):
+            import base64
+            header, b64data = photo.split(',', 1)
+            mime = header.split(':')[1].split(';')[0]
+            img_bytes = base64.b64decode(b64data)
+            from flask import Response
+            return Response(img_bytes, mimetype=mime)
+        # Legacy: file-based
+        return send_file(os.path.join(UPLOAD_DIR, secure_filename(filename)))
+    finally:
+        conn.close()
 
 
 @app.route('/reef/api/tank-photo', methods=['DELETE'])
@@ -1403,7 +1418,7 @@ def dashboard():
         recurring_total = sum(r['monthly_amount'] for r in recurring) if recurring else 0
 
         tank_photo = (user or {}).get('tank_photo')
-        tank_photo_url = f'/reef/api/tank-photo/{tank_photo}' if tank_photo else None
+        tank_photo_url = '/reef/api/tank-photo/current' if tank_photo else None
 
         return jsonify({
             'health_score': health_score,
@@ -2802,21 +2817,20 @@ def upload_livestock_photo(lid):
         f = request.files['photo']
         if not f.filename:
             return jsonify({'error': 'Empty file'}), 400
+
+        # Read file and convert to base64 — stored in DB so it survives redeploys
+        import base64
+        raw = f.read()
+        # Limit to 5MB
+        if len(raw) > 5 * 1024 * 1024:
+            return jsonify({'error': 'Photo too large (max 5MB)'}), 400
         ext = f.filename.rsplit('.', 1)[-1].lower() if '.' in f.filename else 'jpg'
-        if ext not in ('jpg', 'jpeg', 'png', 'webp', 'heic'):
-            return jsonify({'error': 'Invalid file type. Use JPG, PNG, or WebP'}), 400
-        filename = f'livestock_{uid}_{lid}_{uuid.uuid4().hex[:8]}.{ext}'
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-        f.save(os.path.join(UPLOAD_DIR, filename))
+        mime = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'webp': 'image/webp'}.get(ext, 'image/jpeg')
+        b64 = f'data:{mime};base64,' + base64.b64encode(raw).decode('utf-8')
+
         conn = get_db()
         try:
-            # Remove old photo file
-            old = db_fetchval(conn, 'SELECT photo FROM livestock WHERE id = ? AND user_id = ?', [lid, uid])
-            if old:
-                old_path = os.path.join(UPLOAD_DIR, old)
-                if os.path.exists(old_path):
-                    os.remove(old_path)
-            db_execute(conn, 'UPDATE livestock SET photo = ? WHERE id = ? AND user_id = ?', [filename, lid, uid])
+            db_execute(conn, 'UPDATE livestock SET photo = ? WHERE id = ? AND user_id = ?', [b64, lid, uid])
             conn.commit()
             return jsonify({'ok': True, 'photo_url': f'/reef/api/livestock/{lid}/photo'})
         finally:
@@ -2836,6 +2850,16 @@ def get_livestock_photo(lid):
         photo = db_fetchval(conn, 'SELECT photo FROM livestock WHERE id = ? AND user_id = ?', [lid, uid])
         if not photo:
             return jsonify({'error': 'No photo'}), 404
+        # If it's base64, decode and serve
+        if photo.startswith('data:'):
+            import base64
+            # Parse data URI: data:image/jpeg;base64,xxxxx
+            header, b64data = photo.split(',', 1)
+            mime = header.split(':')[1].split(';')[0]
+            img_bytes = base64.b64decode(b64data)
+            from flask import Response
+            return Response(img_bytes, mimetype=mime)
+        # Legacy: serve from filesystem
         return send_from_directory(UPLOAD_DIR, photo)
     finally:
         conn.close()
