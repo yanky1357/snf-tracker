@@ -2850,11 +2850,12 @@ def upload_livestock_photo(lid):
             # Ensure photo column exists
             try:
                 if USE_POSTGRES:
-                    conn.cursor().execute('ALTER TABLE livestock ADD COLUMN photo TEXT')
+                    conn.cursor().execute('ALTER TABLE livestock ADD COLUMN IF NOT EXISTS photo TEXT')
                 else:
                     conn.execute('ALTER TABLE livestock ADD COLUMN photo TEXT')
+                conn.commit()
             except Exception:
-                pass
+                conn.rollback()
 
             db_execute(conn, 'UPDATE livestock SET photo = ? WHERE id = ? AND user_id = ?', [b64, lid, uid])
             conn.commit()

@@ -250,28 +250,26 @@ def init_db():
             ''')
             # Add email_verified column if not exists
             try:
-                conn.cursor().execute('''
-                    ALTER TABLE reef_users ADD COLUMN email_verified SMALLINT DEFAULT 0
-                ''')
+                conn.cursor().execute('ALTER TABLE reef_users ADD COLUMN IF NOT EXISTS email_verified SMALLINT DEFAULT 0')
+                conn.commit()
             except Exception:
-                pass
-            # Add cost_wizard_completed column if not exists
+                conn.rollback()
+            # Add columns if not exists (use IF NOT EXISTS for PostgreSQL)
             try:
-                conn.cursor().execute('''
-                    ALTER TABLE reef_users ADD COLUMN cost_wizard_completed SMALLINT DEFAULT 0
-                ''')
+                conn.cursor().execute('ALTER TABLE reef_users ADD COLUMN IF NOT EXISTS cost_wizard_completed SMALLINT DEFAULT 0')
+                conn.commit()
             except Exception:
-                pass  # Column already exists
+                conn.rollback()
             try:
-                conn.cursor().execute('''
-                    ALTER TABLE reef_users ADD COLUMN tank_photo TEXT
-                ''')
+                conn.cursor().execute('ALTER TABLE reef_users ADD COLUMN IF NOT EXISTS tank_photo TEXT')
+                conn.commit()
             except Exception:
-                pass
+                conn.rollback()
             try:
-                conn.cursor().execute('ALTER TABLE livestock ADD COLUMN photo TEXT')
+                conn.cursor().execute('ALTER TABLE livestock ADD COLUMN IF NOT EXISTS photo TEXT')
+                conn.commit()
             except Exception:
-                pass
+                conn.rollback()
             # Dosing/Food Presets & Daily Journal
             try:
                 conn.cursor().execute('''
