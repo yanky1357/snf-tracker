@@ -2818,18 +2818,44 @@ def upload_livestock_photo(lid):
         if not f.filename:
             return jsonify({'error': 'Empty file'}), 400
 
-        # Read file and convert to base64 — stored in DB so it survives redeploys
         import base64
+        from io import BytesIO
         raw = f.read()
-        # Limit to 5MB
-        if len(raw) > 5 * 1024 * 1024:
-            return jsonify({'error': 'Photo too large (max 5MB)'}), 400
-        ext = f.filename.rsplit('.', 1)[-1].lower() if '.' in f.filename else 'jpg'
-        mime = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'webp': 'image/webp'}.get(ext, 'image/jpeg')
+        if len(raw) > 10 * 1024 * 1024:
+            return jsonify({'error': 'Photo too large (max 10MB)'}), 400
+
+        # Compress image to JPEG to reduce size
+        try:
+            from PIL import Image
+            img = Image.open(BytesIO(raw))
+            img = img.convert('RGB')
+            # Resize if too large (max 800px on longest side)
+            max_dim = 800
+            if img.width > max_dim or img.height > max_dim:
+                ratio = min(max_dim / img.width, max_dim / img.height)
+                img = img.resize((int(img.width * ratio), int(img.height * ratio)), Image.LANCZOS)
+            buf = BytesIO()
+            img.save(buf, format='JPEG', quality=75)
+            raw = buf.getvalue()
+            mime = 'image/jpeg'
+        except ImportError:
+            # PIL not available, use raw file
+            ext = f.filename.rsplit('.', 1)[-1].lower() if '.' in f.filename else 'jpg'
+            mime = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'webp': 'image/webp'}.get(ext, 'image/jpeg')
+
         b64 = f'data:{mime};base64,' + base64.b64encode(raw).decode('utf-8')
 
         conn = get_db()
         try:
+            # Ensure photo column exists
+            try:
+                if USE_POSTGRES:
+                    conn.cursor().execute('ALTER TABLE livestock ADD COLUMN photo TEXT')
+                else:
+                    conn.execute('ALTER TABLE livestock ADD COLUMN photo TEXT')
+            except Exception:
+                pass
+
             db_execute(conn, 'UPDATE livestock SET photo = ? WHERE id = ? AND user_id = ?', [b64, lid, uid])
             conn.commit()
             return jsonify({'ok': True, 'photo_url': f'/reef/api/livestock/{lid}/photo'})

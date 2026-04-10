@@ -110,7 +110,7 @@ function uploadLivestockPhoto(id) {
             loadTankData();
             loadHomeLivestock();
         } catch (err) {
-            showToast('Failed to upload photo', 'error');
+            showToast(err.message || 'Failed to upload photo', 'error');
         }
     };
     input.click();
