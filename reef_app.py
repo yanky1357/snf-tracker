@@ -527,7 +527,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
  <div class="section-title">Recent Users <span style="font-size:12px;color:#8899AA;font-weight:400">(click a user to see activity)</span></div>
  <div style="overflow-x:auto;background:#162233;border-radius:14px;border:1px solid rgba(255,255,255,0.04)">
   <table class="users-table"><thead><tr>
-   <th>#</th><th>Name</th><th>Email</th><th>Joined</th><th>Tank</th><th>Setup</th>
+   <th>#</th><th>Name</th><th>Email</th><th>Joined</th><th>Tank</th><th>Setup</th><th></th>
   </tr></thead><tbody id="usersBody"></tbody></table>
  </div>
  <div class="auto-refresh" id="refreshNote">Auto-refreshes every 30 seconds</div>
@@ -570,12 +570,10 @@ function render(d){
   const dt=new Date(u.joined);
   const time=isNaN(dt)?u.joined:dt.toLocaleDateString()+' '+dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   const tank=u.tank_size?(u.tank_size+'g '+(u.tank_type||'').replace(/_/g,' ')):'—';
-  return `<tr data-uid="${u.id}" style="cursor:pointer"><td>${u.id}</td><td>${u.name||'—'}</td><td>${u.email}</td><td>${time}</td><td>${tank}</td>
-   <td><span class="badge ${u.onboarded?'yes':'no'}">${u.onboarded?'Done':'Pending'}</span></td></tr>`;
+  return `<tr><td>${u.id}</td><td>${u.name||'—'}</td><td>${u.email}</td><td>${time}</td><td>${tank}</td>
+   <td><span class="badge ${u.onboarded?'yes':'no'}">${u.onboarded?'Done':'Pending'}</span></td>
+   <td><button onclick="showUser(${u.id})" style="padding:5px 12px;background:#00B4D8;color:white;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">View</button></td></tr>`;
  }).join('');
- tbody.querySelectorAll('tr').forEach(tr=>{
-  tr.addEventListener('click',()=>showUser(parseInt(tr.dataset.uid)));
- });
  document.getElementById('refreshNote').textContent='Last updated: '+new Date().toLocaleTimeString()+' · Auto-refreshes every 30s';
 }
 function showUser(uid){
