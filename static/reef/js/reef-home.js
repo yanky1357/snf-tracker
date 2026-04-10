@@ -18,6 +18,7 @@ async function loadDashboard() {
         renderRecentActivity();
         loadRoutinePresets();
         loadJournal();
+        loadHomeLivestock();
     } catch (err) {
         if (!navigator.onLine) {
             showToast('You\'re offline — dashboard data may be stale', 'error');
@@ -605,4 +606,59 @@ async function saveJournal() {
     } catch (e) {
         showToast('Failed to save note', 'error');
     }
+}
+
+
+// ── Home Livestock Gallery ────────────────────────────────────────────────
+
+async function loadHomeLivestock() {
+    try {
+        const data = await api('/livestock');
+        const list = document.getElementById('home-livestock-list');
+        if (!data.livestock || data.livestock.length === 0) {
+            list.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text-secondary)">
+                <div style="font-size:32px;margin-bottom:8px">🐟</div>
+                <div style="font-size:13px">No livestock yet</div>
+                <div style="font-size:11px;margin-top:4px;opacity:0.6">Add your fish, corals, and inverts</div>
+            </div>`;
+            return;
+        }
+
+        const categoryEmoji = { fish: '🐟', coral: '🪸', invertebrate: '🦐', anemone: '🌊' };
+
+        list.innerHTML = data.livestock.map(l => {
+            const name = l.nickname || l.common_name || l.species || 'Unknown';
+            const emoji = categoryEmoji[l.category] || '🐠';
+            const daysText = l.days_owned !== null && l.days_owned !== undefined
+                ? (l.days_owned === 0 ? 'Added today'
+                    : l.days_owned === 1 ? '1 day'
+                    : l.days_owned < 30 ? l.days_owned + ' days'
+                    : l.days_owned < 365 ? Math.floor(l.days_owned / 30) + ' months'
+                    : Math.floor(l.days_owned / 365) + '+ years')
+                : '';
+
+            if (l.photo_url) {
+                return `<div class="ls-card" onclick="uploadLivestockPhoto(${l.id})">
+                    <div class="ls-photo" style="background-image:url('${l.photo_url}')"></div>
+                    <div class="ls-info">
+                        <div class="ls-name">${name}${l.quantity > 1 ? ' <span style="color:var(--accent)">x' + l.quantity + '</span>' : ''}</div>
+                        <div class="ls-species">${l.category}${l.species ? ' · ' + l.species : ''}</div>
+                        ${daysText ? '<div class="ls-age">' + daysText + '</div>' : ''}
+                    </div>
+                </div>`;
+            } else {
+                return `<div class="ls-card" onclick="uploadLivestockPhoto(${l.id})" style="cursor:pointer">
+                    <div class="ls-photo-placeholder">
+                        <span style="font-size:22px">${emoji}</span>
+                        <span style="font-size:9px;color:var(--text-secondary)">+ photo</span>
+                    </div>
+                    <div class="ls-info">
+                        <div class="ls-name">${name}${l.quantity > 1 ? ' <span style="color:var(--accent)">x' + l.quantity + '</span>' : ''}</div>
+                        <div class="ls-species">${l.category}${l.species ? ' · ' + l.species : ''}</div>
+                        ${daysText ? '<div class="ls-age">' + daysText + '</div>' : ''}
+                    </div>
+                </div>`;
+            }
+        }).join('');
+    } catch (e) {}
 }

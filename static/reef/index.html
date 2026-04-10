@@ -587,6 +587,15 @@ if (!localStorage.getItem('sw-clean-v11') && 'serviceWorker' in navigator) {
                     </div>
                 </div>
 
+                <!-- My Reef (Livestock Gallery) -->
+                <div class="dashboard-section">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                        <h3 class="dash-section-title" style="margin:0">My Reef</h3>
+                        <button onclick="showAddLivestock()" style="background:var(--accent);color:white;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">+ Add</button>
+                    </div>
+                    <div id="home-livestock-list"></div>
+                </div>
+
                 <!-- Today's Routine (Dosing/Food Presets) -->
                 <div class="dashboard-section" id="routine-section" style="display:none">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
