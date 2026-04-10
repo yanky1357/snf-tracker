@@ -971,25 +971,24 @@ input::placeholder {
 }
 
 .settings-select {
-    background: rgba(0, 180, 216, 0.1);
-    border: 1px solid rgba(0, 180, 216, 0.25);
+    background: rgba(0, 180, 216, 0.08);
+    border: 1px solid rgba(0, 180, 216, 0.2);
     border-radius: 20px;
     color: var(--accent);
-    padding: 6px 14px;
+    padding: 7px 28px 7px 14px;
     font-size: 13px;
     font-weight: 600;
     outline: none;
     cursor: pointer;
+    width: auto;
     -webkit-appearance: none;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2300B4D8'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%2300B4D8'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 12px center;
-    padding-right: 30px;
+    background-position: right 10px center;
 }
 .settings-select:focus {
     border-color: var(--accent);
-    background-color: rgba(0, 180, 216, 0.15);
 }
 
 .settings-divider {
