@@ -3,6 +3,7 @@
 SNF Ownership Tracker — Flask API server
 Run: python app.py
 """
+import os
 import re
 import sqlite3
 from datetime import date
@@ -10,7 +11,9 @@ from pathlib import Path
 from flask import Flask, jsonify, request, send_from_directory
 
 BASE_DIR = Path(__file__).parent
-DB_PATH  = BASE_DIR / "snf_ownership.db"
+# Path is overridable via DB_PATH env var so Railway can point it at a persistent Volume
+# (e.g. DB_PATH=/data/snf_ownership.db). Defaults to the file next to app.py for local dev.
+DB_PATH  = Path(os.getenv("DB_PATH", str(BASE_DIR / "snf_ownership.db")))
 
 app = Flask(__name__, static_folder=str(BASE_DIR / "static"), static_url_path="")
 
